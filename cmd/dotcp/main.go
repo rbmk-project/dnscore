@@ -47,7 +47,8 @@ func main() {
 	server := dnscore.NewServerAddr(dnscore.ProtocolTCP, *serverAddr)
 
 	// Create the DNS query
-	query, err := dnscore.NewQuery(*domain, dnsType)
+	optEDNS0 := dnscore.QueryOptionEDNS0(4096, 0)
+	query, err := dnscore.NewQuery(*domain, dnsType, optEDNS0)
 	if err != nil {
 		log.Fatalf("dnscore.NewQuery: %s", err.Error())
 	}
