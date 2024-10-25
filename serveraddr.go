@@ -1,0 +1,51 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+package dnscore
+
+// Protocol is a transport protocol.
+type Protocol string
+
+const (
+	// ProtocolUDP is DNS over UDP.
+	ProtocolUDP = Protocol("udp")
+
+	// ProtocolTCP is DNS over TCP.
+	ProtocolTCP = Protocol("tcp")
+
+	// ProtocolDoT is DNS over TLS.
+	ProtocolDoT = Protocol("dot")
+
+	// ProtocolDoH is DNS over HTTPS.
+	ProtocolDoH = Protocol("doh")
+)
+
+// ServerAddr is a DNS server address.
+//
+// Construct using [NewServerAddr].
+type ServerAddr struct {
+	// Protocol is the transport protocol to use.
+	//
+	// Use one of:
+	//
+	// - [ProtocolUDP]
+	// - [ProtocolTCP]
+	// - [ProtocolDoT]
+	// - [ProtocolDoH]
+	Protocol Protocol
+
+	// Address is the network address of the server.
+	//
+	// For [ProtocolUDP], [ProtocolTCP], and [ProtocolDoT] this is
+	// a string in the form returned by [net.JoinHostPort].
+	//
+	// For [ProtocolDoH] this is a URL.
+	Address string
+}
+
+// NewServerAddr constructs a new [*ServerAddr] with the given protocol and address.
+func NewServerAddr(protocol Protocol, address string) *ServerAddr {
+	return &ServerAddr{
+		Protocol: protocol,
+		Address:  address,
+	}
+}
