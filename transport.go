@@ -42,11 +42,6 @@ type Transport struct {
 	// will not be emitting structured logs.
 	Logger *slog.Logger
 
-	// MaxHTTPResponseSize is the maximum size of the HTTP response
-	// body in DNS-over-HTTPS. If this field is zero, the default
-	// value of 1 MiB will be used.
-	MaxHTTPResponseSize int64
-
 	// NewHTTPRequestWithContext is an optional function that creates a new
 	// HTTP request with the given context. If this field is nil, the
 	// [http.NewRequestWithContext] function will be used.

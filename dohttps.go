@@ -17,15 +17,6 @@ import (
 	"github.com/miekg/dns"
 )
 
-// maxHTTPResponseSize returns the configured maximum HTTP response size
-// or, if the field is zero or negative, a sensible default.
-func (t *Transport) maxHTTPResponseSize() int64 {
-	if t.MaxHTTPResponseSize <= 0 {
-		return 1 << 20
-	}
-	return t.MaxHTTPResponseSize
-}
-
 // newHTTPRequestWithContext is a helper function that creates a new HTTP request
 // using the namesake transport function or the stdlib if the such a function is nil.
 func (t *Transport) newHTTPRequestWithContext(ctx context.Context, method, URL string, body io.Reader) (*http.Request, error) {
@@ -89,7 +80,7 @@ func (t *Transport) queryHTTPS(ctx context.Context,
 
 	// 4. Now that headers are OK, we read the whole raw response
 	// body, decode it, and possibly log it.
-	reader := io.LimitReader(httpResp.Body, t.maxHTTPResponseSize())
+	reader := io.LimitReader(httpResp.Body, int64(edns0MaxResponseSize(query)))
 	rawResp, err := t.readAllContext(ctx, reader, httpResp.Body)
 	if err != nil {
 		return nil, err

@@ -110,9 +110,9 @@ func (t *Transport) sendQueryUDP(ctx context.Context, addr *ServerAddr,
 	return
 }
 
-// udpMaxResponseSize returns the maximum response size that the client
+// edns0MaxResponseSize returns the maximum response size that the client
 // did configure using EDNS(0) or the default size of 512 bytes.
-func udpMaxResponseSize(query *dns.Msg) (maxSize uint16) {
+func edns0MaxResponseSize(query *dns.Msg) (maxSize uint16) {
 	for _, rr := range query.Extra {
 		if opt, ok := rr.(*dns.OPT); ok {
 			maxSize = opt.UDPSize()
@@ -130,7 +130,7 @@ func udpMaxResponseSize(query *dns.Msg) (maxSize uint16) {
 func (t *Transport) recvResponseUDP(addr *ServerAddr, conn net.Conn,
 	t0 time.Time, query *dns.Msg, rawQuery []byte) (*dns.Msg, error) {
 	// 1. Read the corresponding raw response
-	buffer := make([]byte, udpMaxResponseSize(query))
+	buffer := make([]byte, edns0MaxResponseSize(query))
 	count, err := conn.Read(buffer)
 	if err != nil {
 		return nil, err
