@@ -6,8 +6,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
+	"net/http"
 	"time"
 
 	"github.com/miekg/dns"
@@ -31,10 +33,33 @@ type Transport struct {
 	// a suitable [*tls.Config] and use [*tls.Dialer].
 	DialTLSContext func(ctx context.Context, network, address string) (net.Conn, error)
 
+	// HTTPClient is the optional HTTP client to use for DNS-over-HTTPS.
+	// If this field is nil, we use the  default HTTP client from [net/http].
+	HTTPClient *http.Client
+
 	// Logger is the optional structured logger for emitting
 	// structured diagnostic events. If this field is nil, we
 	// will not be emitting structured logs.
 	Logger *slog.Logger
+
+	// MaxHTTPResponseSize is the maximum size of the HTTP response
+	// body in DNS-over-HTTPS. If this field is zero, the default
+	// value of 1 MiB will be used.
+	MaxHTTPResponseSize int64
+
+	// NewHTTPRequestWithContext is an optional function that creates a new
+	// HTTP request with the given context. If this field is nil, the
+	// [http.NewRequestWithContext] function will be used.
+	NewHTTPRequestWithContext func(ctx context.Context, method, url string, body io.Reader) (*http.Request, error)
+
+	// ReadAllContext is the optional function to read the whole HTTP response
+	// body in DNS-over-HTTPS. If this field is nil, we use the [io.ReadAll] function
+	// instead. Compared to [io.ReadAll], this function has a context argument
+	// and an [io.Closer] argument, which SHOULD be used to close the connection
+	// when the context is cancelled. In general, this is not useful, but in censored
+	// places censorship may desync the TCP connection, making context-based
+	// interruption useful to avoid being blocked ~forever.
+	ReadAllContext func(ctx context.Context, r io.Reader, c io.Closer) ([]byte, error)
 
 	// TimeNow is an optional function that returns the current time.
 	// If this field is nil, the [time.Now] function will be used.
@@ -70,6 +95,8 @@ func (t *Transport) Query(ctx context.Context,
 		return t.queryTCP(ctx, addr, query)
 	case ProtocolDoT:
 		return t.queryTLS(ctx, addr, query)
+	case ProtocolDoH:
+		return t.queryHTTPS(ctx, addr, query)
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrNoSuchTransportProtocol, addr.Protocol)
 	}
