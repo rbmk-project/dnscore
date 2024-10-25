@@ -110,16 +110,27 @@ func (t *Transport) sendQueryUDP(ctx context.Context, addr *ServerAddr,
 	return
 }
 
-// DefaultUDPBufferSize is the default buffer size for
-// receiving DNS over UDP responses.
-var DefaultUDPBufferSize = 4096
+// udpMaxResponseSize returns the maximum response size that the client
+// did configure using EDNS(0) or the default size of 512 bytes.
+func udpMaxResponseSize(query *dns.Msg) (maxSize uint16) {
+	for _, rr := range query.Extra {
+		if opt, ok := rr.(*dns.OPT); ok {
+			maxSize = opt.UDPSize()
+			break
+		}
+	}
+	if maxSize <= 0 {
+		maxSize = 512
+	}
+	return
+}
 
 // recvResponseUDP reads and parses the response from the server and
 // possibly logs the response. It returns the parsed response or an error.
-func (t *Transport) recvResponseUDP(addr *ServerAddr,
-	conn net.Conn, t0 time.Time, rawQuery []byte) (*dns.Msg, error) {
+func (t *Transport) recvResponseUDP(addr *ServerAddr, conn net.Conn,
+	t0 time.Time, query *dns.Msg, rawQuery []byte) (*dns.Msg, error) {
 	// 1. Read the corresponding raw response
-	buffer := make([]byte, DefaultUDPBufferSize)
+	buffer := make([]byte, udpMaxResponseSize(query))
 	count, err := conn.Read(buffer)
 	if err != nil {
 		return nil, err
@@ -156,7 +167,7 @@ func (t *Transport) queryUDP(ctx context.Context,
 	}()
 
 	// Read and parse the response and log it if needed.
-	return t.recvResponseUDP(addr, conn, t0, rawQuery)
+	return t.recvResponseUDP(addr, conn, t0, query, rawQuery)
 }
 
 // emitMessageOrError sends a message or error to the output channel
@@ -204,7 +215,7 @@ func (t *Transport) queryUDPWithDuplicates(ctx context.Context,
 
 		// Loop collecting responses and emitting them until the context is done.
 		for {
-			resp, err := t.recvResponseUDP(addr, conn, t0, rawQuery)
+			resp, err := t.recvResponseUDP(addr, conn, t0, query, rawQuery)
 			if err != nil {
 				t.emitMessageOrError(ctx, nil, err, out)
 				return
