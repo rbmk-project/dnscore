@@ -1,8 +1,17 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// Adapted from: https://github.com/ooni/probe-engine/blob/v0.23.0/netx/resolver/encoder.go
+//
+// Query implementation
+//
 
 package dnscore
 
-import "github.com/miekg/dns"
+import (
+	"github.com/miekg/dns"
+	"golang.org/x/net/idna"
+)
 
 // QueryOption is a function that modifies a DNS query.
 type QueryOption func(*dns.Msg) error
@@ -18,7 +27,36 @@ type QueryOption func(*dns.Msg) error
 //
 // The [QueryOption] functions can be used to set additional options.
 func NewQuery(name string, qtype uint16, options ...QueryOption) (*dns.Msg, error) {
-	return nil, nil
+	// IDNA encode the domain name.
+	punyName, err := idna.Lookup.ToASCII(name)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure the domain name is fully qualified.
+	if !dns.IsFqdn(punyName) {
+		punyName = dns.Fqdn(punyName)
+	}
+
+	// Create the query message.
+	question := dns.Question{
+		Name:   punyName,
+		Qtype:  qtype,
+		Qclass: dns.ClassINET,
+	}
+	query := new(dns.Msg)
+	query.Id = dns.Id()
+	query.RecursionDesired = true
+	query.Question = make([]dns.Question, 1)
+	query.Question[0] = question
+
+	// Apply the query options.
+	for _, option := range options {
+		if err := option(query); err != nil {
+			return nil, err
+		}
+	}
+	return query, nil
 }
 
 // ValidateResponse validates a given DNS response

@@ -4,7 +4,11 @@ package dnscore
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
+	"net"
+	"time"
 
 	"github.com/miekg/dns"
 )
@@ -26,6 +30,10 @@ type Transport struct {
 	// structured diagnostic events. If this field is nil, we
 	// will not be emitting structured logs.
 	Logger *slog.Logger
+
+	// TimeNow is an optional function that returns the current time.
+	// If this field is nil, the [time.Now] function will be used.
+	TimeNow func() time.Time
 }
 
 // DefaultTransport is the default transport used by the package.
@@ -35,6 +43,9 @@ var DefaultTransport = NewTransport()
 func NewTransport() *Transport {
 	return &Transport{}
 }
+
+// ErrNoSuchTransportProtocol is returned when the given protocol is not supported.
+var ErrNoSuchTransportProtocol = errors.New("no such transport protocol")
 
 // Query sends a DNS query to the given server address and returns the response.
 //
@@ -47,7 +58,12 @@ func NewTransport() *Transport {
 // validate the response using the [ValidateResponse] function.
 func (t *Transport) Query(ctx context.Context,
 	addr *ServerAddr, query *dns.Msg) (*dns.Msg, error) {
-	return nil, nil
+	switch addr.Protocol {
+	case ProtocolUDP:
+		return t.queryUDP(ctx, addr, query)
+	default:
+		return nil, fmt.Errorf("%w: %s", ErrNoSuchTransportProtocol, addr.Protocol)
+	}
 }
 
 // MessageOrError contains either a DNS message or an error.
@@ -55,6 +71,9 @@ type MessageOrError struct {
 	Err error
 	Msg *dns.Msg
 }
+
+// ErrTransportCannotReceiveDuplicates is returned when the transport cannot receive duplicates.
+var ErrTransportCannotReceiveDuplicates = errors.New("transport cannot receive duplicates")
 
 // QueryWithDuplicates sends a DNS query to the given server address
 // and returns the received responses. Use this method when you expect
@@ -73,5 +92,11 @@ type MessageOrError struct {
 // validate the responses using the [ValidateResponse] function.
 func (t *Transport) QueryWithDuplicates(ctx context.Context,
 	addr *ServerAddr, query *dns.Msg) <-chan *MessageOrError {
-	return nil
+	if addr.Protocol != ProtocolUDP {
+		ch := make(chan *MessageOrError, 1)
+		ch <- &MessageOrError{Err: fmt.Errorf("%w: %s", ErrTransportCannotReceiveDuplicates, addr.Protocol)}
+		close(ch)
+		return ch
+	}
+	return t.queryUDPWithDuplicates(ctx, addr, query)
 }
