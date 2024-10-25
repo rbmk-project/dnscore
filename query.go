@@ -35,6 +35,10 @@ const (
 // used by the [net] package in the standard library.
 const EDNS0SuggestedMaxResponseSizeUDP = 1232
 
+// END0SSuggestedMaxResponseSizeOtherwise is the suggested max-response size
+// when not using the DNS over UDP transport.
+const EDNS0SuggestedMaxResponseSizeOtherwise = 4096
+
 // QueryOptionEDNS0 configures the EDNS(0) options.
 //
 // You can configure:

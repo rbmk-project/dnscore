@@ -15,7 +15,12 @@ import (
 //
 // Construct using [NewResolver].
 type Resolver struct {
-	// Transport is the DNS transport to use for resolving queries.
+	// Config is the optional resolver configuration.
+	//
+	// If nil, we use an empty [*ResolverConfig].
+	Config *ResolverConfig
+
+	// Transport is the optional DNS transport to use for resolving queries.
 	//
 	// If nil, we use [DefaultTransport].
 	Transport *Transport
@@ -24,6 +29,14 @@ type Resolver struct {
 // NewResolver creates a new DNS resolver with default settings.
 func NewResolver() *Resolver {
 	return &Resolver{}
+}
+
+// config returns the resolver configuration or a default one.
+func (r *Resolver) config() *ResolverConfig {
+	if r.Config == nil {
+		return NewConfig()
+	}
+	return r.Config
 }
 
 // LookupHost looks up the given host named using the DNS resolver.
