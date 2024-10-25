@@ -61,6 +61,8 @@ func (t *Transport) Query(ctx context.Context,
 	switch addr.Protocol {
 	case ProtocolUDP:
 		return t.queryUDP(ctx, addr, query)
+	case ProtocolTCP:
+		return t.queryTCP(ctx, addr, query)
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrNoSuchTransportProtocol, addr.Protocol)
 	}
