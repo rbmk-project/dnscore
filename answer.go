@@ -3,7 +3,7 @@
 //
 // Adapted from: https://github.com/ooni/probe-engine/blob/v0.23.0/netx/resolver/decoder.go
 //
-// Answers decoder
+// Answer RRs decoder
 //
 
 package dnscore

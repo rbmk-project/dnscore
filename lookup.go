@@ -22,7 +22,7 @@ import (
 
 // transport returns the tranport to use for resolving queries, which is
 // either the transport specified in the resolver or the default.
-func (r *Resolver) transport() *Transport {
+func (r *Resolver) transport() ResolverTransport {
 	if r.Transport != nil {
 		return r.Transport
 	}

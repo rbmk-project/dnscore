@@ -10,6 +10,14 @@ import (
 	"github.com/miekg/dns"
 )
 
+// ResolverTransport is the interface defining the [*Transport]
+// methods used by the [*Resolver] struct.
+//
+// The [*Transport] type implements this interface.
+type ResolverTransport interface {
+	Query(ctx context.Context, addr *ServerAddr, query *dns.Msg) (*dns.Msg, error)
+}
+
 // Resolver is a DNS resolver. This struct is API compatible with
 // the [*net.Resolver] struct from the [net] package.
 //
@@ -23,7 +31,7 @@ type Resolver struct {
 	// Transport is the optional DNS transport to use for resolving queries.
 	//
 	// If nil, we use [DefaultTransport].
-	Transport *Transport
+	Transport ResolverTransport
 }
 
 // NewResolver creates a new DNS resolver with default settings.
