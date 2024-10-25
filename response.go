@@ -114,6 +114,9 @@ var (
 // will use the "no such host" suffix.
 //
 // If the RCODE is zero, this function returns nil.
+//
+// Before invoking this function, make sure the response is valid
+// for the request by calling [ValidateResponse].
 func RCodeToError(resp *dns.Msg) error {
 	// 1. handle NXDOMAIN case by mapping it to EAI_NONAME
 	if resp.Rcode == dns.RcodeNameError {
@@ -136,4 +139,58 @@ func RCodeToError(resp *dns.Msg) error {
 		return ErrServerMisbehaving
 	}
 	return nil
+}
+
+// ValidAnswers extracts valid RRs from the response considering
+// the DNS question that was asked. Before invoking this function,
+// make sure the response is valid using [ValidateResponse].
+//
+// The list of valid RRs is returned in the same order as they appear
+// in the response message. If the response does not contain any valid
+// RRs, this function returns an empty list.
+func ValidAnswers(q0 dns.Question, resp *dns.Msg) ([]dns.RR, error) {
+	// 1. figure out whether the resolver has encountered any
+	// alias along the way, or we should filter for the original
+	// question name. As mentioned in the Go standard library:
+	//
+	//      [...] RFC 1034 section 4.3.1 says that "the recursive
+	//      response to a query will be... The answer to the query,
+	//      possibly preface by one or more CNAME RRs that specify
+	//      aliases encountered on the way to an answer."
+	//
+	// Therefore, if we want to validate, we need to do so
+	// against the last CNAME record in the answers.
+	//
+	// TODO(bassosimone): add test case using `www.youtube.com`
+	// or, even better, `www.kernel.org` (has two aliases)
+	expectName := q0.Name
+	for _, answer := range resp.Answer {
+		switch answer := answer.(type) {
+		case *dns.CNAME:
+			expectName = answer.Target
+		}
+	}
+
+	// 3. build list of valid answers
+	valid := []dns.RR{}
+	for _, answer := range resp.Answer {
+		header := answer.Header()
+		if !equalASCIIName(expectName, header.Name) {
+			continue
+		}
+		if q0.Qclass != header.Class {
+			continue
+		}
+		// Note: there may be several RR types for a given query so we
+		// should not check for the type here
+		valid = append(valid, answer)
+	}
+
+	// 3. handle the case of no valid answers
+	if len(valid) < 1 {
+		return nil, ErrNoData
+	}
+
+	// 4. return the possibly empty list.
+	return valid, nil
 }
