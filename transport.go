@@ -26,6 +26,11 @@ type Transport struct {
 	// dialer from the [net] package will be used.
 	DialContext func(ctx context.Context, network, address string) (net.Conn, error)
 
+	// DialTLSContext is like DialContext but for creating new
+	// TLS connections. If this field is nil, we will configure
+	// a suitable [*tls.Config] and use [*tls.Dialer].
+	DialTLSContext func(ctx context.Context, network, address string) (net.Conn, error)
+
 	// Logger is the optional structured logger for emitting
 	// structured diagnostic events. If this field is nil, we
 	// will not be emitting structured logs.
@@ -63,6 +68,8 @@ func (t *Transport) Query(ctx context.Context,
 		return t.queryUDP(ctx, addr, query)
 	case ProtocolTCP:
 		return t.queryTCP(ctx, addr, query)
+	case ProtocolDoT:
+		return t.queryTLS(ctx, addr, query)
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrNoSuchTransportProtocol, addr.Protocol)
 	}
