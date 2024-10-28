@@ -43,7 +43,7 @@ func (t *Transport) maybeLogQuery(addr *ServerAddr, rawQuery []byte) time.Time {
 	if t.Logger != nil {
 		t.Logger.Info(
 			"dnsQuery",
-			slog.Any("query", rawQuery),
+			slog.Any("rawQuery", rawQuery),
 			slog.String("serverAddr", addr.Address),
 			slog.String("serverProtocol", string(addr.Protocol)),
 			slog.Time("t", t0),
