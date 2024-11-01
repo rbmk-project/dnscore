@@ -10,19 +10,90 @@ import (
 )
 
 func TestValidateResponse(t *testing.T) {
-	query := new(dns.Msg)
-	query.SetQuestion("example.com.", dns.TypeA)
+	tests := []struct {
+		name     string
+		modify   func(*dns.Msg, *dns.Msg)
+		expected error
+	}{
+		{
+			name: "ValidResponse",
+			modify: func(query, resp *dns.Msg) {
+				// No modification needed, valid response
+			},
+			expected: nil,
+		},
 
-	resp := new(dns.Msg)
-	resp.SetReply(query)
+		{
+			name: "InvalidResponseID",
+			modify: func(query, resp *dns.Msg) {
+				resp.Id = query.Id + 1
+			},
+			expected: ErrInvalidResponse,
+		},
 
-	if err := ValidateResponse(query, resp); err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		{
+			name: "InvalidResponseNotAResponse",
+			modify: func(query, resp *dns.Msg) {
+				resp.Response = false
+			},
+			expected: ErrInvalidResponse,
+		},
+
+		{
+			name: "InvalidQueryNoQuestion",
+			modify: func(query, resp *dns.Msg) {
+				query.Question = nil
+			},
+			expected: ErrInvalidQuery,
+		},
+
+		{
+			name: "InvalidResponseNoQuestion",
+			modify: func(query, resp *dns.Msg) {
+				resp.Question = nil
+			},
+			expected: ErrInvalidResponse,
+		},
+
+		{
+			name: "InvalidResponseQuestionName",
+			modify: func(query, resp *dns.Msg) {
+				resp.Question[0].Name = "invalid.com."
+			},
+			expected: ErrInvalidResponse,
+		},
+
+		{
+			name: "InvalidResponseQuestionClass",
+			modify: func(query, resp *dns.Msg) {
+				resp.Question[0].Qclass = dns.ClassCHAOS
+			},
+			expected: ErrInvalidResponse,
+		},
+
+		{
+			name: "InvalidResponseQuestionType",
+			modify: func(query, resp *dns.Msg) {
+				resp.Question[0].Qtype = dns.TypeAAAA
+			},
+			expected: ErrInvalidResponse,
+		},
 	}
 
-	resp.Id = query.Id + 1
-	if err := ValidateResponse(query, resp); err != ErrInvalidResponse {
-		t.Fatalf("expected ErrInvalidResponse, got %v", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			query := new(dns.Msg)
+			query.SetQuestion("example.com.", dns.TypeA)
+
+			resp := new(dns.Msg)
+			resp.SetReply(query)
+
+			tt.modify(query, resp)
+
+			if err := ValidateResponse(query, resp); err != tt.expected {
+				t.Fatalf("expected %v, got %v", tt.expected, err)
+			}
+		})
 	}
 }
 
