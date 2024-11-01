@@ -12,13 +12,13 @@ import (
 	"github.com/miekg/dns"
 )
 
-// ResolverTransportMock allows mocking a [ResolverTransport].
-type ResolverTransportMock struct {
+// MockResolverTransport allows mocking a [ResolverTransport].
+type MockResolverTransport struct {
 	MockQuery func(ctx context.Context,
 		addr *ServerAddr, query *dns.Msg) (*dns.Msg, error)
 }
 
-func (rtm *ResolverTransportMock) Query(ctx context.Context,
+func (rtm *MockResolverTransport) Query(ctx context.Context,
 	addr *ServerAddr, query *dns.Msg) (*dns.Msg, error) {
 	return rtm.MockQuery(ctx, addr, query)
 }
@@ -26,7 +26,7 @@ func (rtm *ResolverTransportMock) Query(ctx context.Context,
 func TestResolverTransportMock(t *testing.T) {
 	t.Run("Query", func(t *testing.T) {
 		expected := errors.New("mocked error")
-		rtm := &ResolverTransportMock{
+		rtm := &MockResolverTransport{
 			MockQuery: func(ctx context.Context,
 				addr *ServerAddr, query *dns.Msg) (*dns.Msg, error) {
 				return nil, expected
@@ -188,7 +188,7 @@ func TestResolver_LookupA(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rtm := &ResolverTransportMock{
+			rtm := &MockResolverTransport{
 				MockQuery: tt.mockQuery,
 			}
 			resolver := NewResolver()
@@ -270,7 +270,7 @@ func TestResolver_LookupAAAA(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rtm := &ResolverTransportMock{
+			rtm := &MockResolverTransport{
 				MockQuery: tt.mockQuery,
 			}
 			resolver := NewResolver()
@@ -422,7 +422,7 @@ func TestResolver_LookupHost(t *testing.T) {
 				t.Skip("Skipping test as skipAll is true and dontSkip is false")
 			}
 
-			rtm := &ResolverTransportMock{
+			rtm := &MockResolverTransport{
 				MockQuery: tt.mockQuery,
 			}
 			resolver := NewResolver()
