@@ -26,6 +26,30 @@ func TestValidateResponse(t *testing.T) {
 	}
 }
 
+func Test_equalASCIIName(t *testing.T) {
+	tests := []struct {
+		name     string
+		x        string
+		y        string
+		expected bool
+	}{
+		{"EqualNames", "example.com.", "example.com.", true},
+		{"EqualNamesDifferentCase", "Example.COM.", "exaMple.com.", true},
+		{"DifferentNames", "example.com.", "example.org.", false},
+		{"DifferentLengths", "example.com.", "example.co.uk.", false},
+		{"EmptyStrings", "", "", true},
+		{"OneEmptyString", "example.com.", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if result := equalASCIIName(tt.x, tt.y); result != tt.expected {
+				t.Fatalf("expected %v, got %v", tt.expected, result)
+			}
+		})
+	}
+}
+
 func TestRCodeToError(t *testing.T) {
 	tests := []struct {
 		name     string
