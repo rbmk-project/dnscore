@@ -8,6 +8,7 @@ package dnscore
 
 import (
 	"context"
+	"errors"
 	"net"
 	"strings"
 
@@ -86,10 +87,10 @@ func (r *Resolver) LookupHost(ctx context.Context, host string) ([]string, error
 	// domains have AAAA records; as a fallback, when there's no error just
 	// say that the queries returned no data
 	if len(addrs) < 1 {
-		if ares.err != nil {
+		if ares.err != nil && !errors.Is(ares.err, ErrNoData) {
 			return nil, ares.err
 		}
-		if aaaares.err != nil {
+		if aaaares.err != nil && !errors.Is(aaaares.err, ErrNoData) {
 			return nil, aaaares.err
 		}
 		return nil, ErrNoData
