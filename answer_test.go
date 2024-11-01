@@ -27,6 +27,7 @@ func TestDecodeLookupA(t *testing.T) {
 			cname:    "",
 			err:      nil,
 		},
+
 		{
 			name: "Single CNAME record",
 			rrs: []dns.RR{
@@ -36,8 +37,9 @@ func TestDecodeLookupA(t *testing.T) {
 			cname:    "",
 			err:      ErrNoData,
 		},
+
 		{
-			name: "Multiple A records",
+			name: "Multiple A records without CNAME",
 			rrs: []dns.RR{
 				&dns.A{A: net.ParseIP("192.0.2.1")},
 				&dns.A{A: net.ParseIP("192.0.2.2")},
@@ -46,6 +48,19 @@ func TestDecodeLookupA(t *testing.T) {
 			cname:    "",
 			err:      nil,
 		},
+
+		{
+			name: "Multiple A records with CNAME",
+			rrs: []dns.RR{
+				&dns.A{A: net.ParseIP("192.0.2.1")},
+				&dns.A{A: net.ParseIP("192.0.2.2")},
+				&dns.CNAME{Target: "example.com."},
+			},
+			expected: []string{"192.0.2.1", "192.0.2.2"},
+			cname:    "example.com.",
+			err:      nil,
+		},
+
 		{
 			name:     "No A records",
 			rrs:      []dns.RR{},
@@ -82,6 +97,7 @@ func TestDecodeLookupAAAA(t *testing.T) {
 			cname:    "",
 			err:      nil,
 		},
+
 		{
 			name: "Single CNAME record",
 			rrs: []dns.RR{
@@ -91,8 +107,9 @@ func TestDecodeLookupAAAA(t *testing.T) {
 			cname:    "",
 			err:      ErrNoData,
 		},
+
 		{
-			name: "Multiple AAAA records",
+			name: "Multiple AAAA records without CNAME",
 			rrs: []dns.RR{
 				&dns.AAAA{AAAA: net.ParseIP("2001:db8::1")},
 				&dns.AAAA{AAAA: net.ParseIP("2001:db8::2")},
@@ -101,6 +118,19 @@ func TestDecodeLookupAAAA(t *testing.T) {
 			cname:    "",
 			err:      nil,
 		},
+
+		{
+			name: "Multiple AAAA records with CNAME",
+			rrs: []dns.RR{
+				&dns.AAAA{AAAA: net.ParseIP("2001:db8::1")},
+				&dns.AAAA{AAAA: net.ParseIP("2001:db8::2")},
+				&dns.CNAME{Target: "example.com."},
+			},
+			expected: []string{"2001:db8::1", "2001:db8::2"},
+			cname:    "example.com.",
+			err:      nil,
+		},
+
 		{
 			name:     "No AAAA records",
 			rrs:      []dns.RR{},

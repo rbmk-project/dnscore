@@ -16,13 +16,16 @@ func DecodeLookupA(rrs []dns.RR) (addrs []string, cname string, err error) {
 		switch answer := answer.(type) {
 		case *dns.A:
 			addrs = append(addrs, answer.A.String())
+
 		case *dns.CNAME:
 			cname = answer.Target
 		}
 	}
+
 	if len(addrs) <= 0 {
 		return nil, "", ErrNoData
 	}
+
 	return
 }
 
@@ -32,12 +35,15 @@ func DecodeLookupAAAA(rrs []dns.RR) (addrs []string, cname string, err error) {
 		switch answer := answer.(type) {
 		case *dns.AAAA:
 			addrs = append(addrs, answer.AAAA.String())
+
 		case *dns.CNAME:
 			cname = answer.Target
 		}
 	}
+
 	if len(addrs) <= 0 {
 		return nil, "", ErrNoData
 	}
+
 	return
 }
