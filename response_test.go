@@ -60,6 +60,7 @@ func TestRCodeToError(t *testing.T) {
 		{"ServerFailure", dns.RcodeServerFailure, ErrServerTemporarilyMisbehaving},
 		{"LameReferral", dns.RcodeSuccess, ErrNoData},
 		{"Success", dns.RcodeSuccess, nil},
+		{"Refused", dns.RcodeRefused, ErrServerMisbehaving},
 	}
 
 	for _, tt := range tests {
