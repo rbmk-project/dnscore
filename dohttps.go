@@ -19,7 +19,8 @@ import (
 
 // newHTTPRequestWithContext is a helper function that creates a new HTTP request
 // using the namesake transport function or the stdlib if the such a function is nil.
-func (t *Transport) newHTTPRequestWithContext(ctx context.Context, method, URL string, body io.Reader) (*http.Request, error) {
+func (t *Transport) newHTTPRequestWithContext(
+	ctx context.Context, method, URL string, body io.Reader) (*http.Request, error) {
 	if t.NewHTTPRequestWithContext != nil {
 		return t.NewHTTPRequestWithContext(ctx, method, URL, body)
 	}
