@@ -41,6 +41,12 @@ func (t *Transport) dialTLSContext(ctx context.Context, network, address string)
 // queryTLS implements [*Transport.Query] for DNS over TLS.
 func (t *Transport) queryTLS(ctx context.Context,
 	addr *ServerAddr, query *dns.Msg) (*dns.Msg, error) {
+	// 0. immediately fail if the context is already done, which
+	// is useful to write unit tests
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+
 	// 1. Dial the TLS connection
 	conn, err := t.dialTLSContext(ctx, "tcp", addr.Address)
 

@@ -149,6 +149,12 @@ func (t *Transport) recvResponseUDP(addr *ServerAddr, conn net.Conn,
 // queryUDP implements [*Transport.Query] for DNS over UDP.
 func (t *Transport) queryUDP(ctx context.Context,
 	addr *ServerAddr, query *dns.Msg) (*dns.Msg, error) {
+	// 0. immediately fail if the context is already done, which
+	// is useful to write unit tests
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+
 	// Send the query and log the query if needed.
 	conn, t0, rawQuery, err := t.sendQueryUDP(ctx, addr, query)
 	if err != nil {
@@ -191,6 +197,15 @@ func (t *Transport) emitMessageOrError(ctx context.Context,
 func (t *Transport) queryUDPWithDuplicates(ctx context.Context,
 	addr *ServerAddr, query *dns.Msg) <-chan *MessageOrError {
 	out := make(chan *MessageOrError, 4)
+
+	// Immediately fail if the context is already done, which
+	// is useful to write unit tests
+	if ctx.Err() != nil {
+		out <- &MessageOrError{Err: ctx.Err()}
+		close(out)
+		return out
+	}
+
 	go func() {
 		// Ensure the channel is closed when we're done
 		defer close(out)

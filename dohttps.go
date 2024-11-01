@@ -47,6 +47,12 @@ func (t *Transport) readAllContext(ctx context.Context, r io.Reader, c io.Closer
 // queryHTTPS implements [*Transport.Query] for DNS over HTTPS.
 func (t *Transport) queryHTTPS(ctx context.Context,
 	addr *ServerAddr, query *dns.Msg) (*dns.Msg, error) {
+	// 0. immediately fail if the context is already done, which
+	// is useful to write unit tests
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+
 	// 1. Serialize the query and possibly log that we're sending it.
 	rawQuery, err := query.Pack()
 	if err != nil {

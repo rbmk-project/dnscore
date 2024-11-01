@@ -23,6 +23,12 @@ import (
 // queryTCP implements [*Transport.Query] for DNS over TCP.
 func (t *Transport) queryTCP(ctx context.Context,
 	addr *ServerAddr, query *dns.Msg) (*dns.Msg, error) {
+	// 0. immediately fail if the context is already done, which
+	// is useful to write unit tests
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+
 	// 1. Dial the connection
 	conn, err := t.dialContext(ctx, "tcp", addr.Address)
 

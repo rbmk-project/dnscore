@@ -86,12 +86,16 @@ func (t *Transport) Query(ctx context.Context,
 	switch addr.Protocol {
 	case ProtocolUDP:
 		return t.queryUDP(ctx, addr, query)
+
 	case ProtocolTCP:
 		return t.queryTCP(ctx, addr, query)
+
 	case ProtocolDoT:
 		return t.queryTLS(ctx, addr, query)
+
 	case ProtocolDoH:
 		return t.queryHTTPS(ctx, addr, query)
+
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrNoSuchTransportProtocol, addr.Protocol)
 	}
@@ -123,11 +127,14 @@ var ErrTransportCannotReceiveDuplicates = errors.New("transport cannot receive d
 // validate the responses using the [ValidateResponse] function.
 func (t *Transport) QueryWithDuplicates(ctx context.Context,
 	addr *ServerAddr, query *dns.Msg) <-chan *MessageOrError {
+
 	if addr.Protocol != ProtocolUDP {
 		ch := make(chan *MessageOrError, 1)
-		ch <- &MessageOrError{Err: fmt.Errorf("%w: %s", ErrTransportCannotReceiveDuplicates, addr.Protocol)}
+		ch <- &MessageOrError{Err: fmt.Errorf(
+			"%w: %s", ErrTransportCannotReceiveDuplicates, addr.Protocol)}
 		close(ch)
 		return ch
 	}
+
 	return t.queryUDPWithDuplicates(ctx, addr, query)
 }

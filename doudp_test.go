@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestQueryUDP(t *testing.T) {
+func TestTransport_queryUDP(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupTransport func() *Transport
@@ -158,7 +158,7 @@ func TestQueryUDP(t *testing.T) {
 	}
 }
 
-func TestQueryUDPWithDuplicates(t *testing.T) {
+func TestTransport_queryUDPWithDuplicates(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupTransport func() *Transport
