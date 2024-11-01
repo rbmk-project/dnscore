@@ -160,9 +160,6 @@ func ValidAnswers(q0 dns.Question, resp *dns.Msg) ([]dns.RR, error) {
 	//
 	// Therefore, if we want to validate, we need to do so
 	// against the last CNAME record in the answers.
-	//
-	// TODO(bassosimone): add test case using `www.youtube.com`
-	// or, even better, `www.kernel.org` (has two aliases)
 	expectName := q0.Name
 	for _, answer := range resp.Answer {
 		switch answer := answer.(type) {

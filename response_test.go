@@ -93,26 +93,151 @@ func TestRCodeToError(t *testing.T) {
 }
 
 func TestValidAnswers(t *testing.T) {
-	query := new(dns.Msg)
-	query.SetQuestion("example.com.", dns.TypeA)
-
-	resp := new(dns.Msg)
-	resp.SetReply(query)
-	resp.Answer = append(resp.Answer, &dns.A{
-		Hdr: dns.RR_Header{
-			Name:   "example.com.",
-			Rrtype: dns.TypeA,
-			Class:  dns.ClassINET,
+	tests := []struct {
+		name     string
+		query    *dns.Msg
+		resp     *dns.Msg
+		expected int
+		err      error
+	}{
+		{
+			name: "ValidAnswerWithoutCNAME",
+			query: func() *dns.Msg {
+				m := new(dns.Msg)
+				m.SetQuestion("example.com.", dns.TypeA)
+				return m
+			}(),
+			resp: func() *dns.Msg {
+				m := new(dns.Msg)
+				m.SetReply(new(dns.Msg))
+				m.Answer = append(m.Answer, &dns.A{
+					Hdr: dns.RR_Header{
+						Name:   "example.com.",
+						Rrtype: dns.TypeA,
+						Class:  dns.ClassINET,
+					},
+					A: net.IPv4(127, 0, 0, 1),
+				})
+				return m
+			}(),
+			expected: 1,
+			err:      nil,
 		},
-		A: net.IPv4(127, 0, 0, 1),
-	})
 
-	answers, err := ValidAnswers(query.Question[0], resp)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		{
+			name: "ValidAnswerWithCNAME",
+			query: func() *dns.Msg {
+				m := new(dns.Msg)
+				m.SetQuestion("example.co.uk.", dns.TypeA)
+				return m
+			}(),
+			resp: func() *dns.Msg {
+				m := new(dns.Msg)
+				m.SetReply(new(dns.Msg))
+				m.Answer = append(m.Answer, &dns.CNAME{
+					Hdr: dns.RR_Header{
+						Name:   "example.co.uk.",
+						Rrtype: dns.TypeCNAME,
+						Class:  dns.ClassINET,
+					},
+					Target: "example.com.",
+				})
+				m.Answer = append(m.Answer, &dns.CNAME{
+					Hdr: dns.RR_Header{
+						Name:   "example.com.",
+						Rrtype: dns.TypeCNAME,
+						Class:  dns.ClassINET,
+					},
+					Target: "example.org.",
+				})
+				m.Answer = append(m.Answer, &dns.A{
+					Hdr: dns.RR_Header{
+						Name:   "example.org.",
+						Rrtype: dns.TypeA,
+						Class:  dns.ClassINET,
+					},
+					A: net.IPv4(127, 0, 0, 1),
+				})
+				return m
+			}(),
+			expected: 1,
+			err:      nil,
+		},
+
+		{
+			name: "NoAnswers",
+			query: func() *dns.Msg {
+				m := new(dns.Msg)
+				m.SetQuestion("example.com.", dns.TypeA)
+				return m
+			}(),
+			resp: func() *dns.Msg {
+				m := new(dns.Msg)
+				m.SetReply(new(dns.Msg))
+				return m
+			}(),
+			expected: 0,
+			err:      ErrNoData,
+		},
+
+		{
+			name: "MismatchedName",
+			query: func() *dns.Msg {
+				m := new(dns.Msg)
+				m.SetQuestion("example.com.", dns.TypeA)
+				return m
+			}(),
+			resp: func() *dns.Msg {
+				m := new(dns.Msg)
+				m.SetReply(new(dns.Msg))
+				m.Answer = append(m.Answer, &dns.A{
+					Hdr: dns.RR_Header{
+						Name:   "example.org.",
+						Rrtype: dns.TypeA,
+						Class:  dns.ClassINET,
+					},
+					A: net.IPv4(127, 0, 0, 1),
+				})
+				return m
+			}(),
+			expected: 0,
+			err:      ErrNoData,
+		},
+
+		{
+			name: "MismatchedClass",
+			query: func() *dns.Msg {
+				m := new(dns.Msg)
+				m.SetQuestion("example.com.", dns.TypeA)
+				return m
+			}(),
+			resp: func() *dns.Msg {
+				m := new(dns.Msg)
+				m.SetReply(new(dns.Msg))
+				m.Answer = append(m.Answer, &dns.A{
+					Hdr: dns.RR_Header{
+						Name:   "example.com.",
+						Rrtype: dns.TypeA,
+						Class:  dns.ClassCHAOS,
+					},
+					A: net.IPv4(127, 0, 0, 1),
+				})
+				return m
+			}(),
+			expected: 0,
+			err:      ErrNoData,
+		},
 	}
 
-	if len(answers) != 1 {
-		t.Fatalf("expected 1 answer, got %d", len(answers))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			answers, err := ValidAnswers(tt.query.Question[0], tt.resp)
+			if err != tt.err {
+				t.Fatalf("expected error %v, got %v", tt.err, err)
+			}
+			if len(answers) != tt.expected {
+				t.Fatalf("expected %d answers, got %d", tt.expected, len(answers))
+			}
+		})
 	}
 }
