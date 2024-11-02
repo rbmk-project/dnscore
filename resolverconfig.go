@@ -81,7 +81,7 @@ func ServerOptionQueryOptions(queryOptions ...QueryOption) AddServerOption {
 }
 
 // DefaultQueryTimeout is the default timeout for each query.
-const DefaultQueryTimeout = 2 * time.Second
+const DefaultQueryTimeout = 5 * time.Second
 
 // ServerOptionQueryTimeout sets the timeout for each query.
 //
