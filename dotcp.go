@@ -44,12 +44,18 @@ func (t *Transport) queryTCP(ctx context.Context,
 // ErrQueryTooLargeForTransport indicates that a query is too large for the transport.
 var ErrQueryTooLargeForTransport = errors.New("query too large for transport")
 
+// queryMsg is an interface modeling [*dns.Msg] to allow for
+// testing [*Transport.queryStream] more easily.
+type queryMsg interface {
+	Pack() ([]byte, error)
+}
+
 // queryStream performs the round trip over the given TCP/TLS stream.
 //
 // This method TAKES OWNERSHIP of the provided connection and is
 // responsible for closing it when done.
 func (t *Transport) queryStream(ctx context.Context,
-	addr *ServerAddr, query *dns.Msg, conn net.Conn) (*dns.Msg, error) {
+	addr *ServerAddr, query queryMsg, conn net.Conn) (*dns.Msg, error) {
 
 	// 1. Use a single connection for request, which is what the standard library
 	// does as well for TCP and is more robust in terms of residual censorship.
@@ -77,24 +83,20 @@ func (t *Transport) queryStream(ctx context.Context,
 	}
 	t0 := t.maybeLogQuery(addr, rawQuery)
 
-	// 4. Make sure we can actually send the query.
-	if len(rawQuery) > math.MaxUint16 {
-		return nil, fmt.Errorf("%w: %s", ErrQueryTooLargeForTransport, addr.Protocol)
+	// 4. Wrap the query into a frame
+	rawQueryFrame, err := newRawMsgFrame(addr, rawQuery)
+	if err != nil {
+		return nil, err
 	}
 
-	// 5. Serialize query
-	rawQueryFrame := []byte{byte(len(rawQuery) >> 8)}
-	rawQueryFrame = append(rawQueryFrame, byte(len(rawQuery)))
-	rawQueryFrame = append(rawQueryFrame, rawQuery...)
-
-	// 6. Send the query. Do not bother with logging the write call
+	// 5. Send the query. Do not bother with logging the write call
 	// since that should be done by a custom dialer that wraps the
 	// returned connection and implements the desired logging.
 	if _, err := conn.Write(rawQueryFrame); err != nil {
 		return nil, err
 	}
 
-	// 7. Wrap the conn to avoid issuing too many reads
+	// 6. Wrap the conn to avoid issuing too many reads
 	// then read the response header and query
 	br := bufio.NewReader(conn)
 	header := make([]byte, 2)
@@ -107,11 +109,22 @@ func (t *Transport) queryStream(ctx context.Context,
 		return nil, err
 	}
 
-	// 8. Parse the response and possibly log that we received it.
+	// 7. Parse the response and possibly log that we received it.
 	resp := new(dns.Msg)
 	if err := resp.Unpack(rawResp); err != nil {
 		return nil, err
 	}
 	t.maybeLogResponse(addr, t0, rawQuery, rawResp)
 	return resp, nil
+}
+
+// newRawMsgFrame creates a new raw frame for sending a message over TCP or TLS.
+func newRawMsgFrame(addr *ServerAddr, rawMsg []byte) ([]byte, error) {
+	if len(rawMsg) > math.MaxUint16 {
+		return nil, fmt.Errorf("%w: %s", ErrQueryTooLargeForTransport, addr.Protocol)
+	}
+	rawMsgFrame := []byte{byte(len(rawMsg) >> 8)}
+	rawMsgFrame = append(rawMsgFrame, byte(len(rawMsg)))
+	rawMsgFrame = append(rawMsgFrame, rawMsg...)
+	return rawMsgFrame, nil
 }
