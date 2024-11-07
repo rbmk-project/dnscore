@@ -4,6 +4,7 @@ package dnscore
 
 import (
 	"context"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -55,6 +56,11 @@ type Transport struct {
 	// places censorship may desync the TCP connection, making context-based
 	// interruption useful to avoid being blocked ~forever.
 	ReadAllContext func(ctx context.Context, r io.Reader, c io.Closer) ([]byte, error)
+
+	// RootCAs contains the [*x509.CertPool] used by DNS-over-TLS
+	// when the DialTLSContext function pointer is nil. Leaving this
+	// field nil implies using the system's root CAs.
+	RootCAs *x509.CertPool
 
 	// TimeNow is an optional function that returns the current time.
 	// If this field is nil, the [time.Now] function will be used.

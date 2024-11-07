@@ -5,6 +5,7 @@ go 1.23.2
 require (
 	github.com/google/go-cmp v0.6.0
 	github.com/miekg/dns v1.1.62
+	github.com/rbmk-project/common v0.0.0-20241107103116-764ef0d108c3
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/net v0.27.0
 )

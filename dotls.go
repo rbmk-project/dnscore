@@ -29,7 +29,7 @@ func (t *Transport) dialTLSContext(ctx context.Context, network, address string)
 	config := &tls.Config{
 		InsecureSkipVerify: false,
 		NextProtos:         []string{"dot"},
-		RootCAs:            nil, // use the stdlib default
+		RootCAs:            t.RootCAs,
 		ServerName:         hostname,
 	}
 
