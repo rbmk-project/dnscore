@@ -12,6 +12,14 @@ on:
 jobs:
 
   build:
+    strategy:
+      matrix:
+        goversion:
+          # The first entry of the matrix should be the
+          # version indicated inside the `go.mod`
+          - "1.23"
+          - "tip"
+
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -19,7 +27,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version-file: go.mod
+        go-version: "${{ matrix.goversion }}"
 
     - name: Build
       run: go build ./...
