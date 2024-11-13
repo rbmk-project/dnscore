@@ -54,8 +54,8 @@ See [DESIGN.md](DESIGN.md) for an overview of the design.
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request
-on GitHub. Use [rbmk-project/issues](https://github.com/rbmk-project/issues)
+Contributions are welcome! Please submit a pull requests
+using GitHub. Use [rbmk-project/issues](https://github.com/rbmk-project/issues)
 to create issues and discuss features related to this package.
 
 ## License
