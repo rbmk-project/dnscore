@@ -1,19 +1,25 @@
 # dnscore - DNS Measurement Library
 
-`dnscore` is a Go library designed for performing DNS measurements. It
-provides both high-level and low-level APIs to cater to different use
-cases, from simple DNS lookups to detailed analysis of DNS responses.
+[![GoDoc](https://pkg.go.dev/badge/github.com/rbmk-project/dnscore)](https://pkg.go.dev/github.com/rbmk-project/dnscore)
+
+`dnscore` is a Go library designed for performing DNS measurements.  Its high-level
+API, `*dnscore.Resolver`, is compatible with `*net.Resolver`. Its low-level API,
+`*dnscore.Transport`, provides granular control over performing DNS queries using
+specific protocols (including UDP, TCP, TLS, and HTTPS).
 
 ## Features
 
-- High-level API compatible with `*dns.Resolver`
-- Low-level transport for granular control over DNS requests and
-  responses
-- Support for DNS over UDP (Do53), DNS over TLS (DoT), and DNS over
-  HTTPS (DoH)
-- Extensible with custom function pointers for advanced use cases
-- Optional logging for measurement purposes
-- Handling of duplicate responses for DNS over UDP
+- High-level `*Resolver` API compatible with `*net.Resolver` for easy integration.
+- Low-level `*Transport` API allowing granular control over DNS requests and responses.
+- Support for multiple DNS protocols, including UDP, TCP, DoT, and DoH.
+- Utilities for creating and validating DNS messages.
+- Optional logging for structured diagnostic events through `log/slog`.
+- Handling of duplicate responses for DNS over UDP to measure censorship.
+
+The package is structured to allow users to compose their own workflows
+by providing building blocks for DNS queries and responses. It uses
+the widely-used [miekg/dns](https://github.com/miekg/dns) library for
+DNS message parsing and serialization.
 
 ## Installation
 
@@ -25,85 +31,32 @@ go get github.com/rbmk-project/dnscore
 
 ### High-Level API
 
-The high-level API is designed to be compatible with Go's `*dns.Resolver`,
-making it easy to integrate with existing code.
+The `*dnscore.Resolver` API is compatible with `*net.Resolver`.
 
-```go
-package main
-
-import (
-    "context"
-    "fmt"
-    "log"
-
-    "github.com/rbmk-project/dnscore"
-)
-
-func main() {
-    resolver := dnscore.NewResolver()
-    addrs, err := resolver.LookupHost(context.Background(), "www.example.com")
-    if err != nil {
-      log.Fatalf("resolver.LookupHost: %s", err.Error())
-    }
-    fmt.Printf("addrs: %s\n", addrs)
-}
-```
+See [example_resolver_test.go](example_resolver_test.go) for a complete example.
 
 ### Low-Level Transport
 
-The low-level transport API provides more granular control, allowing you
-to handle specific cases like DNS over UDP.
+The `*dnscore.Transport` API provides granular control over DNS queries and responses.
 
-```go
-package main
+See
 
-import (
-    "context"
-    "fmt"
-    "os"
-    "log/slog"
+- [example_https_test.go](example_https_test.go)
+- [example_tcp_test.go](example_tcp_test.go)
+- [example_tls_test.go](example_tls_test.go)
+- [example_udp_test.go](example_udp_test.go)
 
-    "github.com/rbmk-project/dnscore"
-    "github.com/miekg/dns"
-)
+for complete examples using DNS over HTTPS, TCP, TLS, and UDP respectively.
 
-func main() {
-    logger := slog.New(slog.NewTextHandler(os.Stdout))
-    transport := dnscore.NewTransport(logger)
+## Design
 
-    serverAddr := dnscore.NewServerAddr(dnscore.ProtocolUDP, "8.8.8.8:53")
-    query, err := dnscore.CreateQuery("www.example.com", dns.TypeA)
-    if err != nil {
-    	log.Fatalf("dnscore.CreateQuery: %s", err.Error())
-    }
-    fmt.Printf("%s\n\n", query.String())
-
-    response, err := transport.Query(context.Background(), serverAddr, query)
-    if err != nil {
-    	log.Fatalf("transport.Query: %s", err.Error())
-    }
-    fmt.Printf("%s\n\n", response.String())
-
-    if err = dnscore.ValidateResponse(query, response); err != nil {
-    	log.Fatalf("dnscore.ValidateResponse: %s", err.Error())
-    }
-
-    if err := dnscore.RCodeToError(response); err != nil {
-    	log.Fatalf("dnscore.RCodeToError: %s", err.Error())
-    }
-}
-```
-
-## Customization
-
-You can customize the behavior of the resolver and transport by providing
-custom function pointers. If these pointers are `nil`, the standard
-library functions will be used.
+See [DESIGN.md](DESIGN.md) for an overview of the design.
 
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request
-on GitHub.
+on GitHub. Use [rbmk-project/issues](https://github.com/rbmk-project/issues)
+to create issues and discuss features related to this package.
 
 ## License
 
