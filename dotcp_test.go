@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/miekg/dns"
-	"github.com/rbmk-project/dnscore/internal/mocks"
+	"github.com/rbmk-project/common/mocks"
 	"github.com/stretchr/testify/assert"
 )
 

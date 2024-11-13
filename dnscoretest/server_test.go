@@ -6,7 +6,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/rbmk-project/dnscore/internal/mocks"
+	"github.com/rbmk-project/common/mocks"
 )
 
 func TestServer_Close(t *testing.T) {
