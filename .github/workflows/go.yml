@@ -18,7 +18,6 @@ jobs:
           # The first entry of the matrix should be the
           # version indicated inside the `go.mod`
           - "1.23"
-          - "tip"
 
     runs-on: ubuntu-latest
     steps:
