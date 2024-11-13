@@ -3,6 +3,7 @@
 package dnscore
 
 import (
+	"net"
 	"sync"
 	"time"
 )
@@ -143,7 +144,7 @@ func (c *ResolverConfig) servers() []resolverConfigServer {
 		defaultAddrs := []string{"8.8.8.8", "8.8.4.4"}
 		for _, addr := range defaultAddrs {
 			list = append(list, newResolverConfigServer(
-				NewServerAddr(ProtocolUDP, addr+":53"),
+				NewServerAddr(ProtocolUDP, net.JoinHostPort(addr, "53")),
 				ServerOptionQueryOptions(QueryOptionEDNS0(
 					EDNS0SuggestedMaxResponseSizeUDP, 0))))
 		}
