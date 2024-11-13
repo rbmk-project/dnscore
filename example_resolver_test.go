@@ -13,12 +13,8 @@ import (
 )
 
 func ExampleResolver() {
-	// create resolver config and resolver
-	config := dnscore.NewConfig()
-	serverAddr := dnscore.NewServerAddr(dnscore.ProtocolDoT, "8.8.8.8:853")
-	config.AddServer(serverAddr)
+	// create resolver
 	reso := dnscore.NewResolver()
-	reso.Config = config
 
 	// issue the queries and merge the responses
 	addrs, err := reso.LookupHost(context.Background(), "dns.google")
