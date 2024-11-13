@@ -5,21 +5,23 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 
 	"github.com/miekg/dns"
+	"github.com/rbmk-project/common/runtimex"
 	"github.com/rbmk-project/dnscore"
 )
 
-func main() {
-	// Define command-line flags
-	serverAddr := flag.String("server", "8.8.8.8:53", "DNS server address")
-	domain := flag.String("domain", "www.example.com", "Domain to query")
-	qtype := flag.String("type", "A", "Query type (A, AAAA, CNAME, etc.)")
-	protocol := flag.String("protocol", "udp", "DNS protocol (udp, tcp, dot, doh)")
+// Define command-line flags
+var (
+	serverAddr = flag.String("server", "8.8.8.8:53", "DNS server address")
+	domain     = flag.String("domain", "www.example.com", "Domain to query")
+	qtype      = flag.String("type", "A", "Query type (A, AAAA, CNAME, etc.)")
+	protocol   = flag.String("protocol", "udp", "DNS protocol (udp, tcp, dot, doh)")
+)
 
+func main() {
 	// Parse command-line flags
 	flag.Parse()
 
@@ -40,7 +42,7 @@ func main() {
 	case "HTTPS":
 		dnsType = dns.TypeHTTPS
 	default:
-		log.Fatalf("Unsupported query type: %s", *qtype)
+		panic(fmt.Errorf("transport: unsupported query type: %s", *qtype))
 	}
 
 	// Create the server address
@@ -56,26 +58,16 @@ func main() {
 
 	// Create the DNS query
 	optEDNS0 := dnscore.QueryOptionEDNS0(maxlength, flags)
-	query, err := dnscore.NewQuery(*domain, dnsType, optEDNS0)
-	if err != nil {
-		log.Fatalf("dnscore.NewQuery: %s", err.Error())
-	}
+	query := runtimex.Try1(dnscore.NewQuery(*domain, dnsType, optEDNS0))
 	fmt.Printf(";; Query:\n%s\n", query.String())
 
 	// Perform the DNS query
-	response, err := transport.Query(context.Background(), server, query)
-	if err != nil {
-		log.Fatalf("transport.Query: %s", err.Error())
-	}
+	response := runtimex.Try1(transport.Query(context.Background(), server, query))
 	fmt.Printf("\n;; Response:\n%s\n\n", response.String())
 
 	// Validate the DNS response
-	if err = dnscore.ValidateResponse(query, response); err != nil {
-		log.Fatalf("dnscore.ValidateResponse: %s", err.Error())
-	}
+	runtimex.Try0(dnscore.ValidateResponse(query, response))
 
 	// Map the RCODE to an error, if any
-	if err := dnscore.RCodeToError(response); err != nil {
-		log.Fatalf("dnscore.RCodeToError: %s", err.Error())
-	}
+	runtimex.Try0(dnscore.RCodeToError(response))
 }

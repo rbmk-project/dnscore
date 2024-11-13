@@ -6,10 +6,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 
+	"github.com/rbmk-project/common/runtimex"
 	"github.com/rbmk-project/dnscore"
 )
 
@@ -30,9 +30,6 @@ func main() {
 	reso.Transport = transport
 
 	// Resolve the domain
-	addrs, err := reso.LookupHost(context.Background(), *domain)
-	if err != nil {
-		log.Fatalf("reso.LookupHost: %s", err.Error())
-	}
+	addrs := runtimex.Try1(reso.LookupHost(context.Background(), *domain))
 	fmt.Printf("%s\n", addrs)
 }
