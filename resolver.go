@@ -104,9 +104,9 @@ func (r *Resolver) LookupHost(ctx context.Context, host string) ([]string, error
 // resolverDedupAndSort deduplicates a list of addresses and sorts IPv4
 // addresses before IPv6 addresses. In principle, DNS resolvers should not
 // return duplicates, but, with censorship, it is possible that the AAAA
-// query answer is actually a censored A answer. Additionally, until we have
-// implemented RFC6724, we sort IPv4 addresses before IPv6 addresses, since
-// everyone supports IPv4 and not everyone supports IPv6.
+// query answer is actually a censored A answer. Additionally, since we
+// don't implement RFC6724, we sort IPv4 addresses before IPv6 addresses,
+// given that everyone supports IPv4 and not everyone supports IPv6.
 func resolverDedupAndSort(addrs []string) []string {
 	uniq := make(map[string]struct{})
 	var dedupA, dedupAAAA []string
