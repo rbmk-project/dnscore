@@ -38,10 +38,12 @@ func (t *Transport) timeNow() time.Time {
 
 // maybeLogQuery is a helper function that logs the query if the logger is set
 // and returns the current time for subsequent logging.
-func (t *Transport) maybeLogQuery(addr *ServerAddr, rawQuery []byte) time.Time {
+func (t *Transport) maybeLogQuery(
+	ctx context.Context, addr *ServerAddr, rawQuery []byte) time.Time {
 	t0 := t.timeNow()
 	if t.Logger != nil {
-		t.Logger.Info(
+		t.Logger.InfoContext(
+			ctx,
 			"dnsQuery",
 			slog.Any("rawQuery", rawQuery),
 			slog.String("serverAddr", addr.Address),
@@ -53,9 +55,11 @@ func (t *Transport) maybeLogQuery(addr *ServerAddr, rawQuery []byte) time.Time {
 }
 
 // maybeLogResponse is a helper function that logs the response if the logger is set.
-func (t *Transport) maybeLogResponse(addr *ServerAddr, t0 time.Time, rawQuery, rawResp []byte) {
+func (t *Transport) maybeLogResponse(ctx context.Context,
+	addr *ServerAddr, t0 time.Time, rawQuery, rawResp []byte) {
 	if t.Logger != nil {
-		t.Logger.Info(
+		t.Logger.InfoContext(
+			ctx,
 			"dnsResponse",
 			slog.Any("rawQuery", rawQuery),
 			slog.Any("rawResponse", rawResp),
@@ -101,7 +105,7 @@ func (t *Transport) sendQueryUDP(ctx context.Context, addr *ServerAddr,
 	if err != nil {
 		return
 	}
-	t0 = t.maybeLogQuery(addr, rawQuery)
+	t0 = t.maybeLogQuery(ctx, addr, rawQuery)
 
 	// 4. Send the query. Do not bother with logging the write call
 	// since that should be done by a custom dialer that wraps the
@@ -127,7 +131,7 @@ func edns0MaxResponseSize(query *dns.Msg) (maxSize uint16) {
 
 // recvResponseUDP reads and parses the response from the server and
 // possibly logs the response. It returns the parsed response or an error.
-func (t *Transport) recvResponseUDP(addr *ServerAddr, conn net.Conn,
+func (t *Transport) recvResponseUDP(ctx context.Context, addr *ServerAddr, conn net.Conn,
 	t0 time.Time, query *dns.Msg, rawQuery []byte) (*dns.Msg, error) {
 	// 1. Read the corresponding raw response
 	buffer := make([]byte, edns0MaxResponseSize(query))
@@ -142,7 +146,7 @@ func (t *Transport) recvResponseUDP(addr *ServerAddr, conn net.Conn,
 	if err := resp.Unpack(rawResp); err != nil {
 		return nil, err
 	}
-	t.maybeLogResponse(addr, t0, rawQuery, rawResp)
+	t.maybeLogResponse(ctx, addr, t0, rawQuery, rawResp)
 	return resp, nil
 }
 
@@ -173,7 +177,7 @@ func (t *Transport) queryUDP(ctx context.Context,
 	}()
 
 	// Read and parse the response and log it if needed.
-	return t.recvResponseUDP(addr, conn, t0, query, rawQuery)
+	return t.recvResponseUDP(ctx, addr, conn, t0, query, rawQuery)
 }
 
 // emitMessageOrError sends a message or error to the output channel
@@ -230,7 +234,7 @@ func (t *Transport) queryUDPWithDuplicates(ctx context.Context,
 
 		// Loop collecting responses and emitting them until the context is done.
 		for {
-			resp, err := t.recvResponseUDP(addr, conn, t0, query, rawQuery)
+			resp, err := t.recvResponseUDP(ctx, addr, conn, t0, query, rawQuery)
 			if err != nil {
 				t.emitMessageOrError(ctx, nil, err, out)
 				return

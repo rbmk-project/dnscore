@@ -59,7 +59,7 @@ func (t *Transport) queryHTTPS(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-	t0 := t.maybeLogQuery(addr, rawQuery)
+	t0 := t.maybeLogQuery(ctx, addr, rawQuery)
 
 	// 2. The query is sent as the body of a POST request. The content-type
 	// header must be set. Otherwise servers may respond with 400.
@@ -96,6 +96,6 @@ func (t *Transport) queryHTTPS(ctx context.Context,
 	if err := resp.Unpack(rawResp); err != nil {
 		return nil, err
 	}
-	t.maybeLogResponse(addr, t0, rawQuery, rawResp)
+	t.maybeLogResponse(ctx, addr, t0, rawQuery, rawResp)
 	return resp, nil
 }

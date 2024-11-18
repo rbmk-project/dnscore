@@ -81,7 +81,7 @@ func (t *Transport) queryStream(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-	t0 := t.maybeLogQuery(addr, rawQuery)
+	t0 := t.maybeLogQuery(ctx, addr, rawQuery)
 
 	// 4. Wrap the query into a frame
 	rawQueryFrame, err := newRawMsgFrame(addr, rawQuery)
@@ -114,7 +114,7 @@ func (t *Transport) queryStream(ctx context.Context,
 	if err := resp.Unpack(rawResp); err != nil {
 		return nil, err
 	}
-	t.maybeLogResponse(addr, t0, rawQuery, rawResp)
+	t.maybeLogResponse(ctx, addr, t0, rawQuery, rawResp)
 	return resp, nil
 }
 
