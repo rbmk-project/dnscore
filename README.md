@@ -35,6 +35,9 @@ The `*dnscore.Resolver` API is compatible with `*net.Resolver`.
 
 See [example_resolver_test.go](example_resolver_test.go) for a complete example.
 
+See also [internal/cmd/lookup/main.go](internal/cmd/lookup/main.go) for a
+simple command line tool that demonstrates how to use the `*dnscore.Resolver` API.
+
 ### Low-Level Transport
 
 The `*dnscore.Transport` API provides granular control over DNS queries and responses.
@@ -47,6 +50,10 @@ See
 - [example_udp_test.go](example_udp_test.go)
 
 for complete examples using DNS over HTTPS, TCP, TLS, and UDP respectively.
+
+See also [internal/cmd/transport/main.go](internal/cmd/transport/main.go) for
+a simple command line tool that demonstrates how to use the `*dnscore.Transport` API
+along with using [log/slog](https://pkg.go.dev/log/slog) to emit structured logs.
 
 ## Design
 
