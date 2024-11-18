@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+// Command lookup shows how to use the resolver to perform a DNS lookup.
 package main
 
 import (

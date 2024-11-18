@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Command transport shows how to use the transport to perform a DNS lookup.
 package main
 
