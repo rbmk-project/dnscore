@@ -147,7 +147,8 @@ func TestTransport_maybeLogQuery(t *testing.T) {
 			addr := &ServerAddr{Address: "8.8.8.8:53", Protocol: ProtocolUDP}
 			rawQuery := []byte{0, 0, 0, 0}
 
-			actualTime := transport.maybeLogQuery(addr, rawQuery)
+			ctx := context.Background()
+			actualTime := transport.maybeLogQuery(ctx, addr, rawQuery)
 
 			assert.Equal(t, tt.expectTime, actualTime)
 
@@ -200,7 +201,9 @@ func TestTransport_maybeLogResponse(t *testing.T) {
 			rawQuery := []byte{0, 0, 0, 0}
 			rawResponse := []byte{1, 1, 1, 1}
 
+			ctx := context.Background()
 			transport.maybeLogResponse(
+				ctx,
 				addr,
 				time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 				rawQuery,
@@ -436,7 +439,9 @@ func TestTransport_recvResponseUDP(t *testing.T) {
 				},
 			}
 
-			_, err := transport.recvResponseUDP(addr, conn, time.Now(), query, []byte{0, 0, 0, 0})
+			ctx := context.Background()
+			_, err := transport.recvResponseUDP(
+				ctx, addr, conn, time.Now(), query, []byte{0, 0, 0, 0})
 
 			if tt.expectedError != nil {
 				assert.Error(t, err)
