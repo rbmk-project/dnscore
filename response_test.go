@@ -108,6 +108,7 @@ func Test_equalASCIIName(t *testing.T) {
 		{"EqualNamesDifferentCase", "Example.COM.", "exaMple.com.", true},
 		{"DifferentNames", "example.com.", "example.org.", false},
 		{"DifferentLengths", "example.com.", "example.co.uk.", false},
+		{"OnlyPrefixMatch", "example.co.", "example.co.uk.", false},
 		{"EmptyStrings", "", "", true},
 		{"OneEmptyString", "example.com.", "", false},
 	}
