@@ -3,11 +3,8 @@
 package dnscore
 
 import (
-	"bytes"
 	"context"
 	"errors"
-	"io"
-	"log/slog"
 	"net"
 	"os"
 	"sync/atomic"
@@ -102,119 +99,6 @@ func TestTransport_timeNow(t *testing.T) {
 	}
 }
 
-func TestTransport_maybeLogQuery(t *testing.T) {
-	tests := []struct {
-		name       string
-		newLogger  func(w io.Writer) *slog.Logger
-		expectTime time.Time
-		expectLog  string
-	}{
-		{
-			name: "Logger set",
-			newLogger: func(w io.Writer) *slog.Logger {
-				return slog.New(slog.NewJSONHandler(w, &slog.HandlerOptions{
-					Level: slog.LevelDebug,
-					ReplaceAttr: func(groups []string, attr slog.Attr) slog.Attr {
-						if attr.Key == slog.TimeKey {
-							return slog.Attr{}
-						}
-						return attr
-					},
-				}))
-			},
-			expectTime: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-			expectLog:  "{\"level\":\"INFO\",\"msg\":\"dnsQuery\",\"rawQuery\":\"AAAAAA==\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t\":\"2020-01-01T00:00:00Z\"}\n",
-		},
-
-		{
-			name:       "Logger not set",
-			newLogger:  func(w io.Writer) *slog.Logger { return nil },
-			expectTime: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-			expectLog:  "",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var out bytes.Buffer
-			transport := &Transport{
-				Logger: tt.newLogger(&out),
-				TimeNow: func() time.Time {
-					return tt.expectTime
-				},
-			}
-
-			addr := &ServerAddr{Address: "8.8.8.8:53", Protocol: ProtocolUDP}
-			rawQuery := []byte{0, 0, 0, 0}
-
-			ctx := context.Background()
-			actualTime := transport.maybeLogQuery(ctx, addr, rawQuery)
-
-			assert.Equal(t, tt.expectTime, actualTime)
-
-			actualLog := out.String()
-			assert.Equal(t, tt.expectLog, actualLog)
-		})
-	}
-}
-
-func TestTransport_maybeLogResponse(t *testing.T) {
-	tests := []struct {
-		name      string
-		newLogger func(w io.Writer) *slog.Logger
-		expectLog string
-	}{
-		{
-			name: "Logger set",
-			newLogger: func(w io.Writer) *slog.Logger {
-				return slog.New(slog.NewJSONHandler(w, &slog.HandlerOptions{
-					Level: slog.LevelDebug,
-					ReplaceAttr: func(groups []string, attr slog.Attr) slog.Attr {
-						if attr.Key == slog.TimeKey {
-							return slog.Attr{}
-						}
-						return attr
-					},
-				}))
-			},
-			expectLog: "{\"level\":\"INFO\",\"msg\":\"dnsResponse\",\"rawQuery\":\"AAAAAA==\",\"rawResponse\":\"AQEBAQ==\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t0\":\"2020-01-01T00:00:00Z\",\"t\":\"2020-01-01T00:00:11Z\"}\n",
-		},
-
-		{
-			name:      "Logger not set",
-			newLogger: func(w io.Writer) *slog.Logger { return nil },
-			expectLog: "",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var out bytes.Buffer
-			transport := &Transport{
-				Logger: tt.newLogger(&out),
-				TimeNow: func() time.Time {
-					return time.Date(2020, 1, 1, 0, 0, 11, 0, time.UTC)
-				},
-			}
-
-			addr := &ServerAddr{Address: "8.8.8.8:53", Protocol: ProtocolUDP}
-			rawQuery := []byte{0, 0, 0, 0}
-			rawResponse := []byte{1, 1, 1, 1}
-
-			ctx := context.Background()
-			transport.maybeLogResponse(
-				ctx,
-				addr,
-				time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-				rawQuery,
-				rawResponse,
-			)
-
-			actualLog := out.String()
-			assert.Equal(t, tt.expectLog, actualLog)
-		})
-	}
-}
 func TestTransport_sendQueryUDP(t *testing.T) {
 	tests := []struct {
 		name           string

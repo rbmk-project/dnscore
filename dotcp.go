@@ -114,7 +114,7 @@ func (t *Transport) queryStream(ctx context.Context,
 	if err := resp.Unpack(rawResp); err != nil {
 		return nil, err
 	}
-	t.maybeLogResponse(ctx, addr, t0, rawQuery, rawResp)
+	t.maybeLogResponseConn(ctx, addr, t0, rawQuery, rawResp, conn)
 	return resp, nil
 }
 
