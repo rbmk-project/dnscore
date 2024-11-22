@@ -21,7 +21,7 @@ func (s *Server) StartHTTPS(handler Handler) <-chan struct{} {
 	go func() {
 		cert := runtimex.Try1(tls.X509KeyPair(certPEM, keyPEM))
 		config := &tls.Config{Certificates: []tls.Certificate{cert}}
-		listener := runtimex.Try1(tls.Listen("tcp", "127.0.0.1:0", config))
+		listener := runtimex.Try1(s.listenTLS("tcp", "127.0.0.1:0", config))
 		s.Addr = listener.Addr().String()
 		s.RootCAs = x509.NewCertPool()
 		runtimex.Assert(s.RootCAs.AppendCertsFromPEM(certPEM), "cannot append PEM cert")

@@ -15,7 +15,7 @@ func (s *Server) StartUDP(handler Handler) <-chan struct{} {
 	runtimex.Assert(!s.started, "already started")
 	ready := make(chan struct{})
 	go func() {
-		pconn := runtimex.Try1(net.ListenPacket("udp", "127.0.0.1:0"))
+		pconn := runtimex.Try1(s.listenPacket("udp", "127.0.0.1:0"))
 		s.Addr = pconn.LocalAddr().String()
 		s.ioclosers = append(s.ioclosers, pconn)
 		s.started = true
@@ -25,6 +25,14 @@ func (s *Server) StartUDP(handler Handler) <-chan struct{} {
 		}
 	}()
 	return ready
+}
+
+// listenPacket either uses the standard library or the custom ListenPacket func.
+func (s *Server) listenPacket(network, address string) (net.PacketConn, error) {
+	if s.ListenPacket != nil {
+		return s.ListenPacket(network, address)
+	}
+	return net.ListenPacket(network, address)
 }
 
 // servePacketConn serves a single DNS query over UDP.
