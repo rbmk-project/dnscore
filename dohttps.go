@@ -85,9 +85,12 @@ func (t *Transport) httpClientDo(req *http.Request) (*http.Response, netip.AddrP
 	}
 	req = req.WithContext(httptrace.WithClientTrace(traceCtx, trace))
 
-	// Perform the request and return the response.
+	// Perform the request and return the response while holding
+	// the mutex protecting laddr and raddr.
 	client := t.httpClient()
 	resp, err := client.Do(req)
+	mu.Lock()
+	defer mu.Unlock()
 	return resp, laddr, raddr, err
 }
 
