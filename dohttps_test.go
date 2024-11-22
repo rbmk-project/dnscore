@@ -7,11 +7,15 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net"
 	"net/http"
+	"net/http/httptrace"
+	"net/netip"
 	"testing"
 
 	"github.com/miekg/dns"
 	"github.com/rbmk-project/common/mocks"
+	"github.com/rbmk-project/common/runtimex"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -106,6 +110,142 @@ func TestTransport_httpClient(t *testing.T) {
 			transport := tt.setupTransport()
 			client := transport.httpClient()
 			assert.Equal(t, tt.expectedClient, client)
+		})
+	}
+}
+
+func TestTransport_httpClientDo(t *testing.T) {
+	tests := []struct {
+		name               string
+		setupTransport     func() *Transport
+		expectedError      error
+		expectedLocalAddr  netip.AddrPort
+		expectedRemoteAddr netip.AddrPort
+	}{
+		{
+			name: "HTTPClientDo takes precedence",
+			setupTransport: func() *Transport {
+				return &Transport{
+					HTTPClientDo: func(req *http.Request) (*http.Response, netip.AddrPort, netip.AddrPort, error) {
+						return &http.Response{StatusCode: 200}, netip.AddrPort{}, netip.AddrPort{}, nil
+					},
+					HTTPClient: &http.Client{
+						Transport: &mocks.HTTPTransport{
+							MockRoundTrip: func(req *http.Request) (*http.Response, error) {
+								return nil, errors.New("should not be called")
+							},
+						},
+					},
+				}
+			},
+			expectedError:      nil,
+			expectedLocalAddr:  netip.AddrPort{},
+			expectedRemoteAddr: netip.AddrPort{},
+		},
+
+		{
+			name: "HTTPClientDo returns error",
+			setupTransport: func() *Transport {
+				return &Transport{
+					HTTPClientDo: func(req *http.Request) (*http.Response, netip.AddrPort, netip.AddrPort, error) {
+						return nil, netip.AddrPort{}, netip.AddrPort{}, errors.New("custom error")
+					},
+				}
+			},
+			expectedError:      errors.New("custom error"),
+			expectedLocalAddr:  netip.AddrPort{},
+			expectedRemoteAddr: netip.AddrPort{},
+		},
+
+		{
+			name: "Fallback to HTTPClient success",
+			setupTransport: func() *Transport {
+				return &Transport{
+					HTTPClient: &http.Client{
+						Transport: &mocks.HTTPTransport{
+							MockRoundTrip: func(req *http.Request) (*http.Response, error) {
+								return &http.Response{StatusCode: 200}, nil
+							},
+						},
+					},
+				}
+			},
+			expectedError:      nil,
+			expectedLocalAddr:  netip.AddrPort{},
+			expectedRemoteAddr: netip.AddrPort{},
+		},
+
+		{
+			name: "Fallback to HTTPClient failure",
+			setupTransport: func() *Transport {
+				return &Transport{
+					HTTPClient: &http.Client{
+						Transport: &mocks.HTTPTransport{
+							MockRoundTrip: func(req *http.Request) (*http.Response, error) {
+								return nil, errors.New("http error")
+							},
+						},
+					},
+				}
+			},
+			expectedError:      errors.New("Get \"https://example.com\": http error"),
+			expectedLocalAddr:  netip.AddrPort{},
+			expectedRemoteAddr: netip.AddrPort{},
+		},
+
+		{
+			name: "Fallback to HTTPClient collects addresses",
+			setupTransport: func() *Transport {
+				return &Transport{
+					HTTPClient: &http.Client{
+						Transport: &mocks.HTTPTransport{
+							MockRoundTrip: func(req *http.Request) (*http.Response, error) {
+								trace := httptrace.ContextClientTrace(req.Context())
+								if trace != nil && trace.GotConn != nil {
+									trace.GotConn(httptrace.GotConnInfo{
+										Conn: &mocks.Conn{
+											MockLocalAddr: func() net.Addr {
+												return &net.TCPAddr{
+													IP:   net.ParseIP("::1"),
+													Port: 12345,
+												}
+											},
+											MockRemoteAddr: func() net.Addr {
+												return &net.TCPAddr{
+													IP:   net.ParseIP("::2"),
+													Port: 443,
+												}
+											},
+										},
+									})
+								}
+								return &http.Response{StatusCode: 200}, nil
+							},
+						},
+					},
+				}
+			},
+			expectedError:      nil,
+			expectedLocalAddr:  netip.MustParseAddrPort("[::1]:12345"),
+			expectedRemoteAddr: netip.MustParseAddrPort("[::2]:443"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			transport := tt.setupTransport()
+			req := runtimex.Try1(http.NewRequest("GET", "https://example.com", nil))
+			resp, la, ra, err := transport.httpClientDo(req)
+			if tt.expectedError != nil {
+				assert.Error(t, err)
+				assert.Equal(t, tt.expectedError.Error(), err.Error())
+				assert.Nil(t, resp)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, resp)
+			}
+			assert.Equal(t, tt.expectedLocalAddr, la)
+			assert.Equal(t, tt.expectedRemoteAddr, ra)
 		})
 	}
 }
@@ -363,6 +503,40 @@ func TestTransport_queryHTTPS(t *testing.T) {
 			questionName:  "example.com.",
 			url:           "https://dns.google/dns-query",
 			expectedError: errors.New("read failed"),
+		},
+
+		{
+			name: "HTTPClientDo takes precedence over HTTPClient",
+			setupTransport: func() *Transport {
+				return &Transport{
+					// Should be used
+					HTTPClientDo: func(req *http.Request) (*http.Response, netip.AddrPort, netip.AddrPort, error) {
+						dnsResp := &dns.Msg{}
+						rawDnsResp, err := dnsResp.Pack()
+						if err != nil {
+							panic(err)
+						}
+						resp := &http.Response{
+							StatusCode: 200,
+							Header:     make(http.Header),
+							Body:       io.NopCloser(bytes.NewReader(rawDnsResp)),
+						}
+						resp.Header.Set("content-type", "application/dns-message")
+						return resp, netip.AddrPort{}, netip.AddrPort{}, nil
+					},
+					// Should not be used
+					HTTPClient: &http.Client{
+						Transport: &mocks.HTTPTransport{
+							MockRoundTrip: func(req *http.Request) (*http.Response, error) {
+								return nil, errors.New("HTTPClient should not be used")
+							},
+						},
+					},
+				}
+			},
+			questionName:  "example.com.",
+			url:           "https://dns.google/dns-query",
+			expectedError: nil,
 		},
 	}
 

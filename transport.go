@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/netip"
 	"time"
 
 	"github.com/miekg/dns"
@@ -36,7 +37,18 @@ type Transport struct {
 
 	// HTTPClient is the optional HTTP client to use for DNS-over-HTTPS.
 	// If this field is nil, we use the  default HTTP client from [net/http].
+	//
+	// When HTTPClientDo is nil and this field is not nil, we use this client to
+	// perform queries and http/httptrace to obtain connection information.
 	HTTPClient *http.Client
+
+	// HTTPClientDo optionally allows full control over how HTTP requests
+	// are performed and how to obtain connection information. When this
+	// field is non-nil, it takes precedence over HTTPClient.
+	//
+	// This field is mainly useful for measurement scenarios where you need
+	// precise control over connection handling and addressing information.
+	HTTPClientDo func(req *http.Request) (*http.Response, netip.AddrPort, netip.AddrPort, error)
 
 	// Logger is the optional structured logger for emitting
 	// structured diagnostic events. If this field is nil, we

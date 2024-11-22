@@ -10,7 +10,6 @@ package dnscore
 
 import (
 	"context"
-	"log/slog"
 	"net"
 	"time"
 
@@ -34,41 +33,6 @@ func (t *Transport) timeNow() time.Time {
 		return t.TimeNow()
 	}
 	return time.Now()
-}
-
-// maybeLogQuery is a helper function that logs the query if the logger is set
-// and returns the current time for subsequent logging.
-func (t *Transport) maybeLogQuery(
-	ctx context.Context, addr *ServerAddr, rawQuery []byte) time.Time {
-	t0 := t.timeNow()
-	if t.Logger != nil {
-		t.Logger.InfoContext(
-			ctx,
-			"dnsQuery",
-			slog.Any("rawQuery", rawQuery),
-			slog.String("serverAddr", addr.Address),
-			slog.String("serverProtocol", string(addr.Protocol)),
-			slog.Time("t", t0),
-		)
-	}
-	return t0
-}
-
-// maybeLogResponse is a helper function that logs the response if the logger is set.
-func (t *Transport) maybeLogResponse(ctx context.Context,
-	addr *ServerAddr, t0 time.Time, rawQuery, rawResp []byte) {
-	if t.Logger != nil {
-		t.Logger.InfoContext(
-			ctx,
-			"dnsResponse",
-			slog.Any("rawQuery", rawQuery),
-			slog.Any("rawResponse", rawResp),
-			slog.String("serverAddr", addr.Address),
-			slog.String("serverProtocol", string(addr.Protocol)),
-			slog.Time("t0", t0),
-			slog.Time("t", t.timeNow()),
-		)
-	}
 }
 
 // sendQueryUDP dials a connection, sends and logs the query and
@@ -146,7 +110,7 @@ func (t *Transport) recvResponseUDP(ctx context.Context, addr *ServerAddr, conn 
 	if err := resp.Unpack(rawResp); err != nil {
 		return nil, err
 	}
-	t.maybeLogResponse(ctx, addr, t0, rawQuery, rawResp)
+	t.maybeLogResponseConn(ctx, addr, t0, rawQuery, rawResp, conn)
 	return resp, nil
 }
 

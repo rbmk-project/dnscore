@@ -12,7 +12,11 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"net"
 	"net/http"
+	"net/http/httptrace"
+	"net/netip"
+	"sync"
 
 	"github.com/miekg/dns"
 )
@@ -34,6 +38,57 @@ func (t *Transport) httpClient() *http.Client {
 		return t.HTTPClient
 	}
 	return http.DefaultClient
+}
+
+// httpClientDo performs an HTTP request using one of two methods:
+//
+// 1. if HTTPClientDo is not nil, use it directly;
+//
+// 2. otherwise use [*Transport.httpClient] to obtain a suitable
+// [*http.Client] and perform the request with it.
+func (t *Transport) httpClientDo(req *http.Request) (*http.Response, netip.AddrPort, netip.AddrPort, error) {
+	// If HTTPClientDo isn't nil, use it directly.
+	if t.HTTPClientDo != nil {
+		return t.HTTPClientDo(req)
+	}
+
+	// Prepare to collect info in a goroutine-safe way.
+	var (
+		laddr netip.AddrPort
+		mu    sync.Mutex
+		raddr netip.AddrPort
+	)
+
+	// Create clean context for tracing where "clean" means
+	// we don't compose with other possible context traces
+	traceCtx, cancel := context.WithCancel(context.Background())
+	go func() {
+		defer cancel()
+		select {
+		case <-req.Context().Done():
+		case <-traceCtx.Done():
+		}
+	}()
+
+	// Configure the trace for extractin laddr, raddr
+	trace := &httptrace.ClientTrace{
+		GotConn: func(info httptrace.GotConnInfo) {
+			mu.Lock()
+			defer mu.Unlock()
+			if addr, ok := info.Conn.LocalAddr().(*net.TCPAddr); ok {
+				laddr = addr.AddrPort()
+			}
+			if addr, ok := info.Conn.RemoteAddr().(*net.TCPAddr); ok {
+				raddr = addr.AddrPort()
+			}
+		},
+	}
+	req = req.WithContext(httptrace.WithClientTrace(traceCtx, trace))
+
+	// Perform the request and return the response.
+	client := t.httpClient()
+	resp, err := client.Do(req)
+	return resp, laddr, raddr, err
 }
 
 // readAllContext is a helper function that reads all from the reader using the
@@ -73,7 +128,7 @@ func (t *Transport) queryHTTPS(ctx context.Context,
 	// the body, the response code is 200, and the content type
 	// is the expected one. Since servers always include the
 	// content type, we don't need to be flexible here.
-	httpResp, err := t.httpClient().Do(req)
+	httpResp, laddr, raddr, err := t.httpClientDo(req)
 	if err != nil {
 		return nil, err
 	}
@@ -96,6 +151,6 @@ func (t *Transport) queryHTTPS(ctx context.Context,
 	if err := resp.Unpack(rawResp); err != nil {
 		return nil, err
 	}
-	t.maybeLogResponse(ctx, addr, t0, rawQuery, rawResp)
+	t.maybeLogResponseAddrPort(ctx, addr, t0, rawQuery, rawResp, laddr, raddr)
 	return resp, nil
 }
