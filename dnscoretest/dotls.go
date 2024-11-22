@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	_ "embed"
+	"net"
 
 	"github.com/rbmk-project/common/runtimex"
 )
@@ -27,7 +28,7 @@ func (s *Server) StartTLS(handler Handler) <-chan struct{} {
 	go func() {
 		cert := runtimex.Try1(tls.X509KeyPair(certPEM, keyPEM))
 		config := &tls.Config{Certificates: []tls.Certificate{cert}}
-		listener := runtimex.Try1(tls.Listen("tcp", "127.0.0.1:0", config))
+		listener := runtimex.Try1(s.listenTLS("tcp", "127.0.0.1:0", config))
 		s.Addr = listener.Addr().String()
 		s.RootCAs = x509.NewCertPool()
 		runtimex.Assert(s.RootCAs.AppendCertsFromPEM(certPEM), "cannot append PEM cert")
@@ -43,4 +44,12 @@ func (s *Server) StartTLS(handler Handler) <-chan struct{} {
 		}
 	}()
 	return ready
+}
+
+// listenTLS either uses the stdlib or the custom ListenTLS func.
+func (s *Server) listenTLS(network, address string, config *tls.Config) (net.Listener, error) {
+	if s.ListenTLS != nil {
+		return s.ListenTLS(network, address, config)
+	}
+	return tls.Listen(network, address, config)
 }

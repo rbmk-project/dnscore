@@ -18,7 +18,7 @@ func (s *Server) StartTCP(handler Handler) <-chan struct{} {
 	runtimex.Assert(!s.started, "already started")
 	ready := make(chan struct{})
 	go func() {
-		listener := runtimex.Try1(net.Listen("tcp", "127.0.0.1:0"))
+		listener := runtimex.Try1(s.listen("tcp", "127.0.0.1:0"))
 		s.Addr = listener.Addr().String()
 		s.ioclosers = append(s.ioclosers, listener)
 		s.started = true
@@ -32,6 +32,14 @@ func (s *Server) StartTCP(handler Handler) <-chan struct{} {
 		}
 	}()
 	return ready
+}
+
+// listen either used the stdlib or the custom Listen func.
+func (s *Server) listen(network, address string) (net.Listener, error) {
+	if s.Listen != nil {
+		return s.Listen(network, address)
+	}
+	return net.Listen(network, address)
 }
 
 // serveConn serves a single DNS query over TCP or TLS.
