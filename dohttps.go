@@ -70,7 +70,7 @@ func (t *Transport) httpClientDo(req *http.Request) (*http.Response, netip.AddrP
 		}
 	}()
 
-	// Configure the trace for extractin laddr, raddr
+	// Configure the trace for extracting laddr, raddr
 	trace := &httptrace.ClientTrace{
 		GotConn: func(info httptrace.GotConnInfo) {
 			mu.Lock()
