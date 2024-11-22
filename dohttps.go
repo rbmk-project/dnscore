@@ -62,13 +62,6 @@ func (t *Transport) httpClientDo(req *http.Request) (*http.Response, netip.AddrP
 	// Create clean context for tracing where "clean" means
 	// we don't compose with other possible context traces
 	traceCtx, cancel := context.WithCancel(context.Background())
-	go func() {
-		defer cancel()
-		select {
-		case <-req.Context().Done():
-		case <-traceCtx.Done():
-		}
-	}()
 
 	// Configure the trace for extracting laddr, raddr
 	trace := &httptrace.ClientTrace{
@@ -84,6 +77,19 @@ func (t *Transport) httpClientDo(req *http.Request) (*http.Response, netip.AddrP
 		},
 	}
 	req = req.WithContext(httptrace.WithClientTrace(traceCtx, trace))
+
+	// Arrange for the inner context to be canceled
+	// when the outer context is done.
+	//
+	// This must be after req.WithContext to avoid
+	// a data race in the context itself.
+	go func() {
+		defer cancel()
+		select {
+		case <-req.Context().Done():
+		case <-traceCtx.Done():
+		}
+	}()
 
 	// Perform the request and return the response while holding
 	// the mutex protecting laddr and raddr.
