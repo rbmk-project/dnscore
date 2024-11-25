@@ -3,6 +3,7 @@
 package dnscoretest
 
 import (
+	"io"
 	"net"
 
 	"github.com/miekg/dns"
@@ -11,7 +12,7 @@ import (
 
 // ResponseWriter allows writing raw DNS responses.
 type ResponseWriter interface {
-	Write(rawMsg []byte) (int, error)
+	io.Writer
 }
 
 // Handler is a function that handles a DNS query.

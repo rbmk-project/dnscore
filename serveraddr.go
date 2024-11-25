@@ -21,6 +21,10 @@ const (
 
 // ServerAddr is a DNS server address.
 //
+// While currently minimal, ServerAddr is designed as a pointer type to
+// allow for future extensions of server-specific properties (e.g., custom
+// headers for DoH) without requiring breaking API changes.
+//
 // Construct using [NewServerAddr].
 type ServerAddr struct {
 	// Protocol is the transport protocol to use.
