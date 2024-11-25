@@ -19,7 +19,7 @@ import (
 
 // Transport allows sending and receiving DNS messages.
 //
-// Construct using [NewTransport].
+// The zero value is ready to use.
 //
 // A [*Transport] is safe for concurrent use by multiple goroutines
 // as long as you don't modify its fields after construction and the
@@ -80,12 +80,7 @@ type Transport struct {
 }
 
 // DefaultTransport is the default transport used by the package.
-var DefaultTransport = NewTransport()
-
-// NewTransport constructs a new [*Transport] with default settings.
-func NewTransport() *Transport {
-	return &Transport{}
-}
+var DefaultTransport = &Transport{}
 
 // ErrNoSuchTransportProtocol is returned when the given protocol is not supported.
 var ErrNoSuchTransportProtocol = errors.New("no such transport protocol")

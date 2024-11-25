@@ -23,11 +23,11 @@ func main() {
 
 	// Set up the JSON logger
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
-	transport := dnscore.NewTransport()
+	transport := &dnscore.Transport{}
 	transport.Logger = logger
 
 	// Create the resolver
-	reso := dnscore.NewResolver()
+	reso := &dnscore.Resolver{}
 	reso.Transport = transport
 
 	// Resolve the domain

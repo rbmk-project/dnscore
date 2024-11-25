@@ -26,7 +26,7 @@ type ResolverTransport interface {
 // Resolver is a DNS resolver. This struct is API compatible with
 // the [*net.Resolver] struct from the [net] package.
 //
-// Construct using [NewResolver].
+// The zero value is ready to use.
 type Resolver struct {
 	// Config is the optional resolver configuration.
 	//
@@ -37,11 +37,6 @@ type Resolver struct {
 	//
 	// If nil, we use [DefaultTransport].
 	Transport ResolverTransport
-}
-
-// NewResolver creates a new DNS resolver with default settings.
-func NewResolver() *Resolver {
-	return &Resolver{}
 }
 
 // config returns the resolver configuration or a default one.

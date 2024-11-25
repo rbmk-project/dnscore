@@ -29,7 +29,7 @@ func main() {
 
 	// Set up the JSON logger
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
-	transport := dnscore.NewTransport()
+	transport := &dnscore.Transport{}
 	transport.Logger = logger
 
 	// Determine the DNS query type

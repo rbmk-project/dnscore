@@ -17,7 +17,7 @@ import (
 
 func ExampleTransport_dnsOverUDP() {
 	// create transport, server addr, and query
-	txp := dnscore.NewTransport()
+	txp := &dnscore.Transport{}
 	serverAddr := &dnscore.ServerAddr{
 		Protocol: dnscore.ProtocolUDP,
 		Address:  "8.8.8.8:53",

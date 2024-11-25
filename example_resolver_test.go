@@ -14,7 +14,7 @@ import (
 
 func ExampleResolver() {
 	// create resolver
-	reso := dnscore.NewResolver()
+	reso := &dnscore.Resolver{}
 
 	// issue the queries and merge the responses
 	addrs, err := reso.LookupHost(context.Background(), "dns.google")
