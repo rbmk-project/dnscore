@@ -17,7 +17,7 @@ import (
 
 func ExampleTransport_dnsOverHTTPS() {
 	// create transport, server addr, and query
-	txp := dnscore.NewTransport()
+	txp := &dnscore.Transport{}
 	serverAddr := &dnscore.ServerAddr{
 		Protocol: dnscore.ProtocolDoH,
 		Address:  "https://8.8.8.8/dns-query",

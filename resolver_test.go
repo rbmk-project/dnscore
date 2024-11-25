@@ -191,7 +191,7 @@ func TestResolver_LookupA(t *testing.T) {
 			rtm := &MockResolverTransport{
 				MockQuery: tt.mockQuery,
 			}
-			resolver := NewResolver()
+			resolver := &Resolver{}
 			resolver.Transport = rtm
 
 			addrs, err := resolver.LookupA(context.Background(), tt.host)
@@ -273,7 +273,7 @@ func TestResolver_LookupAAAA(t *testing.T) {
 			rtm := &MockResolverTransport{
 				MockQuery: tt.mockQuery,
 			}
-			resolver := NewResolver()
+			resolver := &Resolver{}
 			resolver.Transport = rtm
 
 			addrs, err := resolver.LookupAAAA(context.Background(), tt.host)
@@ -425,7 +425,7 @@ func TestResolver_LookupHost(t *testing.T) {
 			rtm := &MockResolverTransport{
 				MockQuery: tt.mockQuery,
 			}
-			resolver := NewResolver()
+			resolver := &Resolver{}
 			resolver.Transport = rtm
 
 			addrs, err := resolver.LookupHost(context.Background(), tt.host)

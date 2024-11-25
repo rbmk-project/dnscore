@@ -17,7 +17,7 @@ import (
 
 func ExampleTransport_dnsOverTCP() {
 	// create transport, server addr, and query
-	txp := dnscore.NewTransport()
+	txp := &dnscore.Transport{}
 	serverAddr := &dnscore.ServerAddr{
 		Protocol: dnscore.ProtocolTCP,
 		Address:  "8.8.8.8:53",

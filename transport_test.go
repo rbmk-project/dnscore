@@ -28,7 +28,7 @@ func TestTransportQuery(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(string(tt.protocol), func(t *testing.T) {
-			txp := NewTransport()
+			txp := &Transport{}
 			query := &dns.Msg{}
 			addr := NewServerAddr(tt.protocol, "")
 
@@ -61,7 +61,7 @@ func TestTransportQueryWithDuplicates(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(string(tt.protocol), func(t *testing.T) {
-			txp := NewTransport()
+			txp := &Transport{}
 			query := &dns.Msg{}
 			addr := NewServerAddr(tt.protocol, "")
 
