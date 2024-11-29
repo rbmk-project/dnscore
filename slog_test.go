@@ -82,7 +82,7 @@ func TestTransport_maybeLogQuery(t *testing.T) {
 				}))
 			},
 			expectTime: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-			expectLog:  "{\"level\":\"INFO\",\"msg\":\"dnsQuery\",\"rawQuery\":\"AAAAAA==\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t\":\"2020-01-01T00:00:00Z\"}\n",
+			expectLog:  "{\"level\":\"INFO\",\"msg\":\"dnsQuery\",\"dnsRawQuery\":\"AAAAAA==\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t\":\"2020-01-01T00:00:00Z\"}\n",
 		},
 
 		{
@@ -140,7 +140,7 @@ func TestTransport_maybeLogResponseAddrPort(t *testing.T) {
 			},
 			laddr:     netip.MustParseAddrPort("[2001:db8::1]:1234"),
 			raddr:     netip.MustParseAddrPort("[2001:db8::2]:443"),
-			expectLog: "{\"level\":\"INFO\",\"msg\":\"dnsResponse\",\"localAddr\":\"[2001:db8::1]:1234\",\"rawQuery\":\"AAAAAA==\",\"rawResponse\":\"AQEBAQ==\",\"remoteAddr\":\"[2001:db8::2]:443\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t0\":\"2020-01-01T00:00:00Z\",\"t\":\"2020-01-01T00:00:11Z\"}\n",
+			expectLog: "{\"level\":\"INFO\",\"msg\":\"dnsResponse\",\"localAddr\":\"[2001:db8::1]:1234\",\"dnsRawQuery\":\"AAAAAA==\",\"dnsRawResponse\":\"AQEBAQ==\",\"remoteAddr\":\"[2001:db8::2]:443\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t0\":\"2020-01-01T00:00:00Z\",\"t\":\"2020-01-01T00:00:11Z\"}\n",
 		},
 
 		{
@@ -158,7 +158,7 @@ func TestTransport_maybeLogResponseAddrPort(t *testing.T) {
 			},
 			laddr:     netip.AddrPort{}, // invalid
 			raddr:     netip.AddrPort{}, // invalid
-			expectLog: "{\"level\":\"INFO\",\"msg\":\"dnsResponse\",\"localAddr\":\"[::]:0\",\"rawQuery\":\"AAAAAA==\",\"rawResponse\":\"AQEBAQ==\",\"remoteAddr\":\"[::]:0\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t0\":\"2020-01-01T00:00:00Z\",\"t\":\"2020-01-01T00:00:11Z\"}\n",
+			expectLog: "{\"level\":\"INFO\",\"msg\":\"dnsResponse\",\"localAddr\":\"[::]:0\",\"dnsRawQuery\":\"AAAAAA==\",\"dnsRawResponse\":\"AQEBAQ==\",\"remoteAddr\":\"[::]:0\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t0\":\"2020-01-01T00:00:00Z\",\"t\":\"2020-01-01T00:00:11Z\"}\n",
 		},
 
 		{
@@ -233,7 +233,7 @@ func TestTransport_maybeLogResponseConn(t *testing.T) {
 					}
 				},
 			},
-			expectLog: "{\"level\":\"INFO\",\"msg\":\"dnsResponse\",\"localAddr\":\"[2001:db8::1]:1234\",\"rawQuery\":\"AAAAAA==\",\"rawResponse\":\"AQEBAQ==\",\"remoteAddr\":\"[2001:db8::2]:443\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t0\":\"2020-01-01T00:00:00Z\",\"t\":\"2020-01-01T00:00:11Z\"}\n",
+			expectLog: "{\"level\":\"INFO\",\"msg\":\"dnsResponse\",\"localAddr\":\"[2001:db8::1]:1234\",\"dnsRawQuery\":\"AAAAAA==\",\"dnsRawResponse\":\"AQEBAQ==\",\"remoteAddr\":\"[2001:db8::2]:443\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t0\":\"2020-01-01T00:00:00Z\",\"t\":\"2020-01-01T00:00:11Z\"}\n",
 		},
 
 		{
@@ -257,7 +257,7 @@ func TestTransport_maybeLogResponseConn(t *testing.T) {
 					return &net.UnixAddr{Name: "/tmp/remote.sock", Net: "unix"}
 				},
 			},
-			expectLog: "{\"level\":\"INFO\",\"msg\":\"dnsResponse\",\"localAddr\":\"[::]:0\",\"rawQuery\":\"AAAAAA==\",\"rawResponse\":\"AQEBAQ==\",\"remoteAddr\":\"[::]:0\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t0\":\"2020-01-01T00:00:00Z\",\"t\":\"2020-01-01T00:00:11Z\"}\n",
+			expectLog: "{\"level\":\"INFO\",\"msg\":\"dnsResponse\",\"localAddr\":\"[::]:0\",\"dnsRawQuery\":\"AAAAAA==\",\"dnsRawResponse\":\"AQEBAQ==\",\"remoteAddr\":\"[::]:0\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t0\":\"2020-01-01T00:00:00Z\",\"t\":\"2020-01-01T00:00:11Z\"}\n",
 		},
 
 		{
