@@ -16,51 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_addrToAddrPort(t *testing.T) {
-	tests := []struct {
-		name string
-		addr net.Addr
-		want netip.AddrPort
-	}{
-		{
-			name: "nil address",
-			addr: nil,
-			want: netip.AddrPortFrom(netip.IPv6Unspecified(), 0),
-		},
-
-		{
-			name: "TCP address",
-			addr: &net.TCPAddr{
-				IP:   net.ParseIP("2001:db8::1"),
-				Port: 1234,
-			},
-			want: netip.MustParseAddrPort("[2001:db8::1]:1234"),
-		},
-
-		{
-			name: "UDP address",
-			addr: &net.UDPAddr{
-				IP:   net.ParseIP("2001:db8::2"),
-				Port: 5678,
-			},
-			want: netip.MustParseAddrPort("[2001:db8::2]:5678"),
-		},
-
-		{
-			name: "other address type",
-			addr: &net.UnixAddr{},
-			want: netip.AddrPortFrom(netip.IPv6Unspecified(), 0),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := addrToAddrPort(tt.addr)
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
-
 func TestTransport_maybeLogQuery(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -82,7 +37,7 @@ func TestTransport_maybeLogQuery(t *testing.T) {
 				}))
 			},
 			expectTime: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-			expectLog:  "{\"level\":\"INFO\",\"msg\":\"dnsQuery\",\"dnsRawQuery\":\"AAAAAA==\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t\":\"2020-01-01T00:00:00Z\"}\n",
+			expectLog:  "{\"level\":\"INFO\",\"msg\":\"dnsQuery\",\"dnsRawQuery\":\"AAAAAA==\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t\":\"2020-01-01T00:00:00Z\",\"protocol\":\"udp\"}\n",
 		},
 
 		{
@@ -140,7 +95,7 @@ func TestTransport_maybeLogResponseAddrPort(t *testing.T) {
 			},
 			laddr:     netip.MustParseAddrPort("[2001:db8::1]:1234"),
 			raddr:     netip.MustParseAddrPort("[2001:db8::2]:443"),
-			expectLog: "{\"level\":\"INFO\",\"msg\":\"dnsResponse\",\"localAddr\":\"[2001:db8::1]:1234\",\"dnsRawQuery\":\"AAAAAA==\",\"dnsRawResponse\":\"AQEBAQ==\",\"remoteAddr\":\"[2001:db8::2]:443\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t0\":\"2020-01-01T00:00:00Z\",\"t\":\"2020-01-01T00:00:11Z\"}\n",
+			expectLog: "{\"level\":\"INFO\",\"msg\":\"dnsResponse\",\"localAddr\":\"[2001:db8::1]:1234\",\"dnsRawQuery\":\"AAAAAA==\",\"dnsRawResponse\":\"AQEBAQ==\",\"remoteAddr\":\"[2001:db8::2]:443\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t0\":\"2020-01-01T00:00:00Z\",\"t\":\"2020-01-01T00:00:11Z\",\"protocol\":\"udp\"}\n",
 		},
 
 		{
@@ -158,7 +113,7 @@ func TestTransport_maybeLogResponseAddrPort(t *testing.T) {
 			},
 			laddr:     netip.AddrPort{}, // invalid
 			raddr:     netip.AddrPort{}, // invalid
-			expectLog: "{\"level\":\"INFO\",\"msg\":\"dnsResponse\",\"localAddr\":\"[::]:0\",\"dnsRawQuery\":\"AAAAAA==\",\"dnsRawResponse\":\"AQEBAQ==\",\"remoteAddr\":\"[::]:0\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t0\":\"2020-01-01T00:00:00Z\",\"t\":\"2020-01-01T00:00:11Z\"}\n",
+			expectLog: "{\"level\":\"INFO\",\"msg\":\"dnsResponse\",\"localAddr\":\"[::]:0\",\"dnsRawQuery\":\"AAAAAA==\",\"dnsRawResponse\":\"AQEBAQ==\",\"remoteAddr\":\"[::]:0\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t0\":\"2020-01-01T00:00:00Z\",\"t\":\"2020-01-01T00:00:11Z\",\"protocol\":\"udp\"}\n",
 		},
 
 		{
@@ -233,7 +188,7 @@ func TestTransport_maybeLogResponseConn(t *testing.T) {
 					}
 				},
 			},
-			expectLog: "{\"level\":\"INFO\",\"msg\":\"dnsResponse\",\"localAddr\":\"[2001:db8::1]:1234\",\"dnsRawQuery\":\"AAAAAA==\",\"dnsRawResponse\":\"AQEBAQ==\",\"remoteAddr\":\"[2001:db8::2]:443\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t0\":\"2020-01-01T00:00:00Z\",\"t\":\"2020-01-01T00:00:11Z\"}\n",
+			expectLog: "{\"level\":\"INFO\",\"msg\":\"dnsResponse\",\"localAddr\":\"[2001:db8::1]:1234\",\"dnsRawQuery\":\"AAAAAA==\",\"dnsRawResponse\":\"AQEBAQ==\",\"remoteAddr\":\"[2001:db8::2]:443\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t0\":\"2020-01-01T00:00:00Z\",\"t\":\"2020-01-01T00:00:11Z\",\"protocol\":\"udp\"}\n",
 		},
 
 		{
@@ -257,7 +212,7 @@ func TestTransport_maybeLogResponseConn(t *testing.T) {
 					return &net.UnixAddr{Name: "/tmp/remote.sock", Net: "unix"}
 				},
 			},
-			expectLog: "{\"level\":\"INFO\",\"msg\":\"dnsResponse\",\"localAddr\":\"[::]:0\",\"dnsRawQuery\":\"AAAAAA==\",\"dnsRawResponse\":\"AQEBAQ==\",\"remoteAddr\":\"[::]:0\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t0\":\"2020-01-01T00:00:00Z\",\"t\":\"2020-01-01T00:00:11Z\"}\n",
+			expectLog: "{\"level\":\"INFO\",\"msg\":\"dnsResponse\",\"localAddr\":\"[::]:0\",\"dnsRawQuery\":\"AAAAAA==\",\"dnsRawResponse\":\"AQEBAQ==\",\"remoteAddr\":\"[::]:0\",\"serverAddr\":\"8.8.8.8:53\",\"serverProtocol\":\"udp\",\"t0\":\"2020-01-01T00:00:00Z\",\"t\":\"2020-01-01T00:00:11Z\",\"protocol\":\"udp\"}\n",
 		},
 
 		{
