@@ -19,6 +19,7 @@ import (
 	"sync"
 
 	"github.com/miekg/dns"
+	"github.com/rbmk-project/common/httpslog"
 )
 
 // newHTTPRequestWithContext is a helper function that creates a new HTTP request
@@ -133,11 +134,38 @@ func (t *Transport) queryHTTPS(ctx context.Context,
 	}
 	req.Header.Set("content-type", "application/dns-message")
 
-	// 3. Receive the response headers making sure we close
+	// 3. Log the HTTP request we're sending.
+	httpslog.MaybeLogRoundTripStart(
+		t.Logger,
+		netip.MustParseAddrPort("[::]:0"), // not yet known
+		"tcp",
+		netip.MustParseAddrPort("[::]:0"), // not yet known
+		req,
+		t0,
+	)
+
+	// 4. Receive the response headers making sure we close
 	// the body, the response code is 200, and the content type
 	// is the expected one. Since servers always include the
 	// content type, we don't need to be flexible here.
 	httpResp, laddr, raddr, err := t.httpClientDo(req)
+
+	// 5. Log the result of the HTTP transfer.
+	httpslog.MaybeLogRoundTripDone(
+		t.Logger,
+		laddr,
+		"tcp",
+		raddr,
+		req,
+		httpResp,
+		err,
+		t0,
+		t.timeNow(),
+	)
+
+	// 6. Make sure we close the body, the response code is 200,
+	// and the content type is the expected one. Since servers
+	// always include the content type, we don't need to be flexible here.
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +177,7 @@ func (t *Transport) queryHTTPS(ctx context.Context,
 		return nil, ErrServerMisbehaving
 	}
 
-	// 4. Now that headers are OK, we read the whole raw response
+	// 7. Now that headers are OK, we read the whole raw response
 	// body, decode it, and possibly log it.
 	reader := io.LimitReader(httpResp.Body, int64(edns0MaxResponseSize(query)))
 	rawResp, err := t.readAllContext(ctx, reader, httpResp.Body)

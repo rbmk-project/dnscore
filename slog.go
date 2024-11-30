@@ -8,20 +8,19 @@ import (
 	"net"
 	"net/netip"
 	"time"
+
+	"github.com/rbmk-project/common/netipx"
 )
 
-// addrToAddrPort converts a net.Addr to a netip.AddrPort.
-func addrToAddrPort(addr net.Addr) netip.AddrPort {
-	if addr == nil {
-		return netip.AddrPortFrom(netip.IPv6Unspecified(), 0)
-	}
-	if tcp, ok := addr.(*net.TCPAddr); ok {
-		return tcp.AddrPort()
-	}
-	if udp, ok := addr.(*net.UDPAddr); ok {
-		return udp.AddrPort()
-	}
-	return netip.AddrPortFrom(netip.IPv6Unspecified(), 0)
+// addrToAddrPort is an alias for [common.AddrToAddrPort].
+var addrToAddrPort = netipx.AddrToAddrPort
+
+// protocolMap maps the DNS protocol to the corresponding network protocol.
+var protocolMap = map[Protocol]string{
+	ProtocolDoH: "tcp",
+	ProtocolTCP: "tcp",
+	ProtocolDoT: "tcp",
+	ProtocolUDP: "udp",
 }
 
 // maybeLogQuery is a helper function that logs the query if the logger is set
@@ -37,6 +36,7 @@ func (t *Transport) maybeLogQuery(
 			slog.String("serverAddr", addr.Address),
 			slog.String("serverProtocol", string(addr.Protocol)),
 			slog.Time("t", t0),
+			slog.String("protocol", protocolMap[addr.Protocol]),
 		)
 	}
 	return t0
@@ -66,6 +66,7 @@ func (t *Transport) maybeLogResponseAddrPort(ctx context.Context,
 			slog.String("serverProtocol", string(addr.Protocol)),
 			slog.Time("t0", t0),
 			slog.Time("t", t.timeNow()),
+			slog.String("protocol", protocolMap[addr.Protocol]),
 		)
 	}
 }
