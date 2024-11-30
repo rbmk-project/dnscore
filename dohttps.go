@@ -12,13 +12,11 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"net"
 	"net/http"
-	"net/http/httptrace"
 	"net/netip"
-	"sync"
 
 	"github.com/miekg/dns"
+	"github.com/rbmk-project/common/httpconntrace"
 	"github.com/rbmk-project/common/httpslog"
 )
 
@@ -53,52 +51,9 @@ func (t *Transport) httpClientDo(req *http.Request) (*http.Response, netip.AddrP
 		return t.HTTPClientDo(req)
 	}
 
-	// Prepare to collect info in a goroutine-safe way.
-	var (
-		laddr netip.AddrPort
-		mu    sync.Mutex
-		raddr netip.AddrPort
-	)
-
-	// Create clean context for tracing where "clean" means
-	// we don't compose with other possible context traces
-	traceCtx, cancel := context.WithCancel(context.Background())
-
-	// Configure the trace for extracting laddr, raddr
-	trace := &httptrace.ClientTrace{
-		GotConn: func(info httptrace.GotConnInfo) {
-			mu.Lock()
-			defer mu.Unlock()
-			if addr, ok := info.Conn.LocalAddr().(*net.TCPAddr); ok {
-				laddr = addr.AddrPort()
-			}
-			if addr, ok := info.Conn.RemoteAddr().(*net.TCPAddr); ok {
-				raddr = addr.AddrPort()
-			}
-		},
-	}
-	req = req.WithContext(httptrace.WithClientTrace(traceCtx, trace))
-
-	// Arrange for the inner context to be canceled
-	// when the outer context is done.
-	//
-	// This must be after req.WithContext to avoid
-	// a data race in the context itself.
-	go func() {
-		defer cancel()
-		select {
-		case <-req.Context().Done():
-		case <-traceCtx.Done():
-		}
-	}()
-
-	// Perform the request and return the response while holding
-	// the mutex protecting laddr and raddr.
-	client := t.httpClient()
-	resp, err := client.Do(req)
-	mu.Lock()
-	defer mu.Unlock()
-	return resp, laddr, raddr, err
+	// Otherwise use httpconntrace.Do to perform the request
+	resp, endpoints, err := httpconntrace.Do(t.httpClient(), req)
+	return resp, endpoints.LocalAddr, endpoints.RemoteAddr, err
 }
 
 // readAllContext is a helper function that reads all from the reader using the
