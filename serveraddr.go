@@ -17,6 +17,9 @@ const (
 
 	// ProtocolDoH is DNS over HTTPS.
 	ProtocolDoH = Protocol("doh")
+
+	// ProtocolDoQ is DNS over QUIC.
+	ProtocolDoQ = Protocol("doq")
 )
 
 // ServerAddr is a DNS server address.

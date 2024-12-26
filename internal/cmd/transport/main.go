@@ -51,7 +51,7 @@ func main() {
 	server := dnscore.NewServerAddr(dnscore.Protocol(*protocol), *serverAddr)
 	flags := 0
 	maxlength := uint16(dnscore.EDNS0SuggestedMaxResponseSizeUDP)
-	if *protocol == string(dnscore.ProtocolDoT) || *protocol == string(dnscore.ProtocolDoH) {
+	if *protocol == string(dnscore.ProtocolDoT) || *protocol == string(dnscore.ProtocolDoH) || *protocol == string(dnscore.ProtocolDoQ) {
 		flags |= dnscore.EDNS0FlagDO | dnscore.EDNS0FlagBlockLengthPadding
 	}
 	if *protocol != string(dnscore.ProtocolUDP) {
