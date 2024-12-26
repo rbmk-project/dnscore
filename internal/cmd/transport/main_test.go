@@ -39,7 +39,7 @@ func Test_main(t *testing.T) {
 	})
 
 	t.Run("DNS-over-QUIC", func(t *testing.T) {
-		*serverAddr = "1.1.1.1:853"
+		*serverAddr = "dns0.eu:853"
 		*protocol = "doq"
 		main()
 	})

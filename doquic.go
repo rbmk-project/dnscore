@@ -1,3 +1,13 @@
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// DNS-over-QUIC implementation
+//
+
+// DNS over Dedicated QUIC Connections
+// RFC 9250
+// https://datatracker.ietf.org/doc/rfc9250/
+
 package dnscore
 
 import (
@@ -45,7 +55,11 @@ func (t *Transport) sendQueryQUIC(ctx context.Context, addr *ServerAddr,
 		_ = udpConn.SetDeadline(deadline)
 	}
 
-	// 3. Serialize the query and possibly log that we're sending it.
+	// RFC 9250
+	// 4.2.1.  DNS Message IDs
+	// When sending queries over a QUIC connection, the DNS Message ID MUST
+	// be set to 0.
+	query.Id = 0
 	rawQuery, err = query.Pack()
 	if err != nil {
 		return
@@ -64,6 +78,13 @@ func (t *Transport) sendQueryQUIC(ctx context.Context, addr *ServerAddr,
 	}
 	stream.Write(rawQuery)
 
+	// RFC 9250
+	// 4.2.  Stream Mapping and Usage
+	// The client MUST send the DNS query over the selected stream and MUST
+	// indicate through the STREAM FIN mechanism that no further data will
+	// be sent on that stream.
+	_ = stream.Close()
+
 	return
 }
 
@@ -72,7 +93,7 @@ func (t *Transport) sendQueryQUIC(ctx context.Context, addr *ServerAddr,
 func (t *Transport) recvResponseQUIC(ctx context.Context, addr *ServerAddr, stream quic.Stream,
 	t0 time.Time, query *dns.Msg, rawQuery []byte) (*dns.Msg, error) {
 	// 1. Read the corresponding raw response
-	buffer := make([]byte, 512)
+	buffer := make([]byte, 1024)
 	io.ReadFull(stream, buffer)
 
 	// 2. Parse the raw response and possibly log that we received it.
@@ -81,7 +102,7 @@ func (t *Transport) recvResponseQUIC(ctx context.Context, addr *ServerAddr, stre
 		return nil, err
 	}
 
-	// t.maybeLogResponseConn(ctx, addr, t0, rawQuery, buffer, stream)
+	// t.maybeLogResponseConn(ctx, addr, t0, rawQuery, buffer, conn)
 
 	return resp, nil
 }
@@ -94,18 +115,18 @@ func (t *Transport) queryQUIC(ctx context.Context, addr *ServerAddr, query *dns.
 	}
 
 	// Send the query and log the query if needed.
-	conn, t0, rawQuery, err := t.sendQueryQUIC(ctx, addr, query)
+	stream, t0, rawQuery, err := t.sendQueryQUIC(ctx, addr, query)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	go func() {
-		defer conn.Close()
-		<-ctx.Done()
-	}()
+	// ctx, cancel := context.WithCancel(ctx)
+	// defer cancel()
+	// go func() {
+	// 	defer stream.Close()
+	// 	<-ctx.Done()
+	// }()
 
 	// Read and parse the response and log it if needed.
-	return t.recvResponseQUIC(ctx, addr, conn, t0, query, rawQuery)
+	return t.recvResponseQUIC(ctx, addr, stream, t0, query, rawQuery)
 }
