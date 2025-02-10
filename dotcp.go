@@ -15,9 +15,9 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"net"
 
 	"github.com/miekg/dns"
+	"github.com/quic-go/quic-go"
 )
 
 // queryTCP implements [*Transport.Query] for DNS over TCP.
@@ -55,7 +55,7 @@ type queryMsg interface {
 // This method TAKES OWNERSHIP of the provided connection and is
 // responsible for closing it when done.
 func (t *Transport) queryStream(ctx context.Context,
-	addr *ServerAddr, query queryMsg, conn net.Conn) (*dns.Msg, error) {
+	addr *ServerAddr, query queryMsg, conn dnsStream) (*dns.Msg, error) {
 
 	// 1. Use a single connection for request, which is what the standard library
 	// does as well for TCP and is more robust in terms of residual censorship.
@@ -94,6 +94,15 @@ func (t *Transport) queryStream(ctx context.Context,
 	// returned connection and implements the desired logging.
 	if _, err := conn.Write(rawQueryFrame); err != nil {
 		return nil, err
+	}
+
+	// RFC 9250
+	// 4.2.  Stream Mapping and Usage
+	// The client MUST send the DNS query over the selected stream and MUST
+	// indicate through the STREAM FIN mechanism that no further data will
+	// be sent on that stream.
+	if _, ok := conn.(quic.Stream); ok {
+		_ = conn.Close()
 	}
 
 	// 6. Wrap the conn to avoid issuing too many reads

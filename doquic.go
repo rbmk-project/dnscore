@@ -13,7 +13,6 @@ package dnscore
 import (
 	"context"
 	"crypto/tls"
-	"io"
 	"net"
 	"time"
 
@@ -21,13 +20,15 @@ import (
 	"github.com/quic-go/quic-go"
 )
 
-func (t *Transport) sendQueryQUIC(ctx context.Context, addr *ServerAddr,
-	query *dns.Msg) (stream quic.Stream, t0 time.Time, rawQuery []byte, err error) {
+func (t *Transport) createQUICStream(ctx context.Context, addr *ServerAddr,
+	query *dns.Msg) (stream *quicStreamWrapper, err error) {
 
 	udpAddr, err := net.ResolveUDPAddr("udp", addr.Address)
 	if err != nil {
 		return
 	}
+
+	// udpConn, err := net.ListenPacket("udp", addr.Address)
 
 	udpConn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4zero, Port: 0})
 	if err != nil {
@@ -60,51 +61,24 @@ func (t *Transport) sendQueryQUIC(ctx context.Context, addr *ServerAddr,
 	// When sending queries over a QUIC connection, the DNS Message ID MUST
 	// be set to 0.
 	query.Id = 0
-	rawQuery, err = query.Pack()
-	if err != nil {
-		return
-	}
-
-	t0 = t.maybeLogQuery(ctx, addr, rawQuery)
 
 	quicConn, err := tr.Dial(ctx, udpAddr, tlsConfig, quicConfig)
 	if err != nil {
 		return
 	}
 
-	stream, err = quicConn.OpenStream()
+	quicStream, err := quicConn.OpenStream()
 	if err != nil {
 		return
 	}
-	stream.Write(rawQuery)
 
-	// RFC 9250
-	// 4.2.  Stream Mapping and Usage
-	// The client MUST send the DNS query over the selected stream and MUST
-	// indicate through the STREAM FIN mechanism that no further data will
-	// be sent on that stream.
-	_ = stream.Close()
-
-	return
-}
-
-// recvResponseUDP reads and parses the response from the server and
-// possibly logs the response. It returns the parsed response or an error.
-func (t *Transport) recvResponseQUIC(ctx context.Context, addr *ServerAddr, stream quic.Stream,
-	t0 time.Time, query *dns.Msg, rawQuery []byte) (*dns.Msg, error) {
-	// 1. Read the corresponding raw response
-	buffer := make([]byte, 1024)
-	io.ReadFull(stream, buffer)
-
-	// 2. Parse the raw response and possibly log that we received it.
-	resp := &dns.Msg{}
-	if err := resp.Unpack(buffer); err != nil {
-		return nil, err
+	stream = &quicStreamWrapper{
+		Stream:     quicStream,
+		localAddr:  quicConn.LocalAddr(),
+		remoteAddr: quicConn.RemoteAddr(),
 	}
 
-	// t.maybeLogResponseConn(ctx, addr, t0, rawQuery, buffer, conn)
-
-	return resp, nil
+	return
 }
 
 func (t *Transport) queryQUIC(ctx context.Context, addr *ServerAddr, query *dns.Msg) (*dns.Msg, error) {
@@ -115,18 +89,23 @@ func (t *Transport) queryQUIC(ctx context.Context, addr *ServerAddr, query *dns.
 	}
 
 	// Send the query and log the query if needed.
-	stream, t0, rawQuery, err := t.sendQueryQUIC(ctx, addr, query)
+	stream, err := t.createQUICStream(ctx, addr, query)
 	if err != nil {
 		return nil, err
 	}
 
-	// ctx, cancel := context.WithCancel(ctx)
-	// defer cancel()
-	// go func() {
-	// 	defer stream.Close()
-	// 	<-ctx.Done()
-	// }()
-
-	// Read and parse the response and log it if needed.
-	return t.recvResponseQUIC(ctx, addr, stream, t0, query, rawQuery)
+	return t.queryStream(ctx, addr, query, stream)
 }
+
+type quicStreamWrapper struct {
+	Stream     quic.Stream
+	localAddr  net.Addr
+	remoteAddr net.Addr
+}
+
+func (qsw *quicStreamWrapper) Read(p []byte) (int, error)    { return qsw.Stream.Read(p) }
+func (qsw *quicStreamWrapper) Write(p []byte) (int, error)   { return qsw.Stream.Write(p) }
+func (qsw *quicStreamWrapper) Close() error                  { return qsw.Stream.Close() }
+func (qsw *quicStreamWrapper) SetDeadline(t time.Time) error { return nil }
+func (qsw *quicStreamWrapper) LocalAddr() net.Addr           { return qsw.localAddr }
+func (qsw *quicStreamWrapper) RemoteAddr() net.Addr          { return qsw.remoteAddr }

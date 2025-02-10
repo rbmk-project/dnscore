@@ -5,7 +5,6 @@ package dnscore
 import (
 	"context"
 	"log/slog"
-	"net"
 	"net/netip"
 	"time"
 
@@ -21,6 +20,7 @@ var protocolMap = map[Protocol]string{
 	ProtocolTCP: "tcp",
 	ProtocolDoT: "tcp",
 	ProtocolUDP: "udp",
+	ProtocolDoQ: "udp",
 }
 
 // maybeLogQuery is a helper function that logs the query if the logger is set
@@ -74,7 +74,7 @@ func (t *Transport) maybeLogResponseAddrPort(ctx context.Context,
 // maybeLogResponseConn is a helper function that logs the response if the logger is set.
 func (t *Transport) maybeLogResponseConn(ctx context.Context,
 	addr *ServerAddr, t0 time.Time, rawQuery, rawResp []byte,
-	conn net.Conn) {
+	conn dnsStream) {
 	if t.Logger != nil {
 		t.maybeLogResponseAddrPort(
 			ctx,
