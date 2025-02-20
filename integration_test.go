@@ -46,7 +46,7 @@ func TestTransport_RoundTrip_UDP(t *testing.T) {
 			0,
 		),
 	}
-	query, err := dnscore.NewQuery("example.com", dns.TypeA, options...)
+	query, err := dnscore.NewQueryWithServerAddr(serverAddr, "example.com", dns.TypeA, options...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestTransport_RoundTrip_TCP(t *testing.T) {
 			0,
 		),
 	}
-	query, err := dnscore.NewQuery("example.com", dns.TypeA, options...)
+	query, err := dnscore.NewQueryWithServerAddr(serverAddr, "example.com", dns.TypeA, options...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestTransport_RoundTrip_TLS(t *testing.T) {
 			dnscore.EDNS0FlagDO|dnscore.EDNS0FlagBlockLengthPadding,
 		),
 	}
-	query, err := dnscore.NewQuery("example.com", dns.TypeA, options...)
+	query, err := dnscore.NewQueryWithServerAddr(serverAddr, "example.com", dns.TypeA, options...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,7 +153,7 @@ func TestTransport_RoundTrip_HTTPS(t *testing.T) {
 			dnscore.EDNS0FlagDO|dnscore.EDNS0FlagBlockLengthPadding,
 		),
 	}
-	query, err := dnscore.NewQuery("example.com", dns.TypeA, options...)
+	query, err := dnscore.NewQueryWithServerAddr(serverAddr, "example.com", dns.TypeA, options...)
 	if err != nil {
 		t.Fatal(err)
 	}

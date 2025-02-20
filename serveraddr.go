@@ -5,6 +5,7 @@ package dnscore
 // Protocol is a transport protocol.
 type Protocol string
 
+// All the implemented DNS protocols.
 const (
 	// ProtocolUDP is DNS over UDP.
 	ProtocolUDP = Protocol("udp")
@@ -17,6 +18,15 @@ const (
 
 	// ProtocolDoH is DNS over HTTPS.
 	ProtocolDoH = Protocol("doh")
+)
+
+// Name aliases for DNS protocols.
+const (
+	// ProtocolTLS is an alias for ProtocolDoT.
+	ProtocolTLS = ProtocolDoT
+
+	// ProtocolHTTPS is an alias for ProtocolDoH.
+	ProtocolHTTPS = ProtocolDoH
 )
 
 // ServerAddr is a DNS server address.
