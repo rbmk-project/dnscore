@@ -61,7 +61,7 @@ func main() {
 
 	// Create the DNS query
 	optEDNS0 := dnscore.QueryOptionEDNS0(maxlength, flags)
-	query := runtimex.Try1(dnscore.NewQuery(*domain, dnsType, optEDNS0))
+	query := runtimex.Try1(dnscore.NewQueryWithServerAddr(server, *domain, dnsType, optEDNS0))
 	fmt.Printf(";; Query:\n%s\n", query.String())
 
 	// Perform the DNS query
