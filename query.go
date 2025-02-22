@@ -87,7 +87,7 @@ func QueryOptionID(id uint16) QueryOption {
 // NewQueryWithServerAddr constructs a [*dns.Message] containing a
 // query for the given domain, query type and [*ServerAddr]. We use
 // the [*ServerAddr] to enforce protocol-specific query settings,
-// such as, that DoH wants us to use a zero query ID.
+// such as, that DoH SHOULD use a zero query ID.
 //
 // This function takes care of IDNA encoding the domain name and
 // fails if the domain name is invalid.
@@ -123,9 +123,11 @@ func NewQueryWithServerAddr(serverAddr *ServerAddr, name string, qtype uint16,
 
 	// Only set the queryID for protocols that actually
 	// require a nonzero queryID to be set.
+	// TODO(bassosimone,roopeshsn): update for DoQ
 	switch serverAddr.Protocol {
 	case ProtocolDoH:
-		// the zero ID MUST be used
+		// for DoH/DoQ, by default we leave the query ID to
+		// zero, which is what the RFCs suggest/require.
 	default:
 		query.Id = dns.Id()
 	}
@@ -144,7 +146,7 @@ func NewQueryWithServerAddr(serverAddr *ServerAddr, name string, qtype uint16,
 // compatibility with the previous API. Existing code that is using this
 // function SHOULD use [NewQueryWithServerAddr] with DoH (and MUST with
 // DoQ) such that we correctly set the query ID to zero. Other protocols
-// are not impacted by this issue and can continue using [NewQuery].
+// are not impacted by this issue and may continue using [NewQuery].
 //
 // Deprecated: use [NewQueryWithServerAddr] instead.
 func NewQuery(name string, qtype uint16, options ...QueryOption) (*dns.Msg, error) {

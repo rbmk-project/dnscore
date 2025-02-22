@@ -16,7 +16,7 @@ func TestNewQueryWithServerAddr(t *testing.T) {
 	dns.Id = func() uint16 { return expectedNonZeroQueryID }
 	defer func() { dns.Id = savedId }()
 
-	// TODO(bassosimone): ensure we also test for DoQ
+	// TODO(bassosimone,roopeshsn): ensure we also test for DoQ
 	// once we merge the corresponding PR.
 
 	tests := []struct {
