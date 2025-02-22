@@ -28,7 +28,7 @@ func ExampleTransport_dnsOverUDP() {
 			0,
 		),
 	}
-	query, err := dnscore.NewQuery("dns.google", dns.TypeA, options...)
+	query, err := dnscore.NewQueryWithServerAddr(serverAddr, "dns.google", dns.TypeA, options...)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -46,7 +46,7 @@ func (r *Resolver) exchange(ctx context.Context,
 	}
 
 	// Encode the query
-	query, err := NewQuery(name, qtype, server.queryOptions...)
+	query, err := NewQueryWithServerAddr(server.address, name, qtype, server.queryOptions...)
 	if err != nil {
 		return nil, err
 	}

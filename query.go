@@ -72,7 +72,22 @@ func QueryOptionEDNS0(maxResponseSize uint16, flags int) QueryOption {
 	}
 }
 
-// NewQuery constructs a [*dns.Message] containing a query.
+// QueryOptionID allows setting an arbitrary query ID.
+//
+// Otherwise, the default is using [dns.Id] for all protocols
+// except DNS-over-HTTPS and DNS-over-QUIC, where we use
+// zero, thus following RFC 9250 Sect 4.2.1.
+func QueryOptionID(id uint16) QueryOption {
+	return func(q *dns.Msg) error {
+		q.Id = id
+		return nil
+	}
+}
+
+// NewQueryWithServerAddr constructs a [*dns.Message] containing a
+// query for the given domain, query type and [*ServerAddr]. We use
+// the [*ServerAddr] to enforce protocol-specific query settings,
+// such as, that DoH SHOULD use a zero query ID.
 //
 // This function takes care of IDNA encoding the domain name and
 // fails if the domain name is invalid.
@@ -82,7 +97,8 @@ func QueryOptionEDNS0(maxResponseSize uint16, flags int) QueryOption {
 // Use constants such as [dns.TypeAAAA] to specify the query type.
 //
 // The [QueryOption] functions can be used to set additional options.
-func NewQuery(name string, qtype uint16, options ...QueryOption) (*dns.Msg, error) {
+func NewQueryWithServerAddr(serverAddr *ServerAddr, name string, qtype uint16,
+	options ...QueryOption) (*dns.Msg, error) {
 	// IDNA encode the domain name.
 	punyName, err := idna.Lookup.ToASCII(name)
 	if err != nil {
@@ -101,10 +117,20 @@ func NewQuery(name string, qtype uint16, options ...QueryOption) (*dns.Msg, erro
 		Qclass: dns.ClassINET,
 	}
 	query := new(dns.Msg)
-	query.Id = dns.Id()
 	query.RecursionDesired = true
 	query.Question = make([]dns.Question, 1)
 	query.Question[0] = question
+
+	// Only set the queryID for protocols that actually
+	// require a nonzero queryID to be set.
+	// TODO(bassosimone,roopeshsn): update for DoQ
+	switch serverAddr.Protocol {
+	case ProtocolDoH:
+		// for DoH/DoQ, by default we leave the query ID to
+		// zero, which is what the RFCs suggest/require.
+	default:
+		query.Id = dns.Id()
+	}
 
 	// Apply the query options.
 	for _, option := range options {
@@ -113,4 +139,16 @@ func NewQuery(name string, qtype uint16, options ...QueryOption) (*dns.Msg, erro
 		}
 	}
 	return query, nil
+}
+
+// NewQuery is equivalent to calling [NewQueryWithServerAddr] with
+// a zero-initialized [*ServerAddr]. We retain this function for backward
+// compatibility with the previous API. Existing code that is using this
+// function SHOULD use [NewQueryWithServerAddr] with DoH (and MUST with
+// DoQ) such that we correctly set the query ID to zero. Other protocols
+// are not impacted by this issue and may continue using [NewQuery].
+//
+// Deprecated: use [NewQueryWithServerAddr] instead.
+func NewQuery(name string, qtype uint16, options ...QueryOption) (*dns.Msg, error) {
+	return NewQueryWithServerAddr(&ServerAddr{}, name, qtype, options...)
 }
