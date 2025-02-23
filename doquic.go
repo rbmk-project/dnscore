@@ -13,6 +13,7 @@ package dnscore
 import (
 	"context"
 	"crypto/tls"
+	"log/slog"
 	"net"
 	"time"
 
@@ -20,25 +21,7 @@ import (
 	"github.com/quic-go/quic-go"
 )
 
-func (t *Transport) createQUICStream(ctx context.Context, addr *ServerAddr,
-	query *dns.Msg) (stream *quicStreamWrapper, err error) {
-
-	udpAddr, err := net.ResolveUDPAddr("udp", addr.Address)
-	if err != nil {
-		return
-	}
-
-	// udpConn, err := net.ListenPacket("udp", addr.Address)
-
-	udpConn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4zero, Port: 0})
-	if err != nil {
-		return
-	}
-
-	tr := &quic.Transport{
-		Conn: udpConn,
-	}
-
+func (t *Transport) createQUICStream(ctx context.Context, addr *ServerAddr) (tr *quic.Transport, stream *quicStreamWrapper, err error) {
 	// 1. Fill in a default TLS config and QUIC config
 	hostname, _, err := net.SplitHostPort(addr.Address)
 	if err != nil {
@@ -48,20 +31,25 @@ func (t *Transport) createQUICStream(ctx context.Context, addr *ServerAddr,
 		NextProtos: []string{"doq"},
 		ServerName: hostname,
 	}
-	quicConfig := &quic.Config{}
 
-	// 2. Use the context deadline to limit the query lifetime
-	// as documented in the [*Transport.Query] function.
-	if deadline, ok := ctx.Deadline(); ok {
-		_ = udpConn.SetDeadline(deadline)
+	listenConfig := &net.ListenConfig{}
+	udpConn, err := listenConfig.ListenPacket(ctx, "udp", ":0")
+	if udpConn != nil {
+		slog.Info("UDP connection is successful!", udpConn.LocalAddr().Network(), udpConn.LocalAddr().String())
+	}
+	if err != nil {
+		return
 	}
 
-	// RFC 9250
-	// 4.2.1.  DNS Message IDs
-	// When sending queries over a QUIC connection, the DNS Message ID MUST
-	// be set to 0.
-	query.Id = 0
+	udpAddr, err := net.ResolveUDPAddr("udp", addr.Address)
+	if err != nil {
+		return
+	}
 
+	tr = &quic.Transport{
+		Conn: udpConn,
+	}
+	quicConfig := &quic.Config{}
 	quicConn, err := tr.Dial(ctx, udpAddr, tlsConfig, quicConfig)
 	if err != nil {
 		return
@@ -89,10 +77,17 @@ func (t *Transport) queryQUIC(ctx context.Context, addr *ServerAddr, query *dns.
 	}
 
 	// Send the query and log the query if needed.
-	stream, err := t.createQUICStream(ctx, addr, query)
+	quicTransport, stream, err := t.createQUICStream(ctx, addr)
 	if err != nil {
 		return nil, err
 	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go func() {
+		defer quicTransport.Close()
+		<-ctx.Done()
+	}()
 
 	return t.queryStream(ctx, addr, query, stream)
 }
@@ -106,6 +101,6 @@ type quicStreamWrapper struct {
 func (qsw *quicStreamWrapper) Read(p []byte) (int, error)    { return qsw.Stream.Read(p) }
 func (qsw *quicStreamWrapper) Write(p []byte) (int, error)   { return qsw.Stream.Write(p) }
 func (qsw *quicStreamWrapper) Close() error                  { return qsw.Stream.Close() }
-func (qsw *quicStreamWrapper) SetDeadline(t time.Time) error { return nil }
+func (qsw *quicStreamWrapper) SetDeadline(t time.Time) error { return qsw.Stream.SetDeadline(t) }
 func (qsw *quicStreamWrapper) LocalAddr() net.Addr           { return qsw.localAddr }
 func (qsw *quicStreamWrapper) RemoteAddr() net.Addr          { return qsw.remoteAddr }

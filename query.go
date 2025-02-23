@@ -123,11 +123,11 @@ func NewQueryWithServerAddr(serverAddr *ServerAddr, name string, qtype uint16,
 
 	// Only set the queryID for protocols that actually
 	// require a nonzero queryID to be set.
-	// TODO(bassosimone,roopeshsn): update for DoQ
 	switch serverAddr.Protocol {
 	case ProtocolDoH:
 		// for DoH/DoQ, by default we leave the query ID to
 		// zero, which is what the RFCs suggest/require.
+	case ProtocolDoQ:
 	default:
 		query.Id = dns.Id()
 	}

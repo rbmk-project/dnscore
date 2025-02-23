@@ -30,6 +30,9 @@ const (
 
 	// ProtocolHTTPS is an alias for ProtocolDoH.
 	ProtocolHTTPS = ProtocolDoH
+
+	// ProtocolQUIC is an alias for ProtocolDoQ.
+	ProtocolQUIC = ProtocolDoQ
 )
 
 // ServerAddr is a DNS server address.
@@ -48,6 +51,7 @@ type ServerAddr struct {
 	// - [ProtocolTCP]
 	// - [ProtocolDoT]
 	// - [ProtocolDoH]
+	// - [ProtocolDoQ]
 	Protocol Protocol
 
 	// Address is the network address of the server.

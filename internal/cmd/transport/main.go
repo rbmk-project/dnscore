@@ -17,11 +17,10 @@ import (
 
 // Define command-line flags
 var (
-	serverAddr = flag.String("server", "dns0.eu:853", "DNS server address")
-	// serverAddr = flag.String("server", "8.8.8.8:53", "DNS server address")
-	domain   = flag.String("domain", "example.com", "Domain to query")
-	qtype    = flag.String("type", "AAAA", "Query type (A, AAAA, CNAME, etc.)")
-	protocol = flag.String("protocol", "doq", "DNS protocol (udp, tcp, dot, doh, doq)")
+	serverAddr = flag.String("server", "8.8.8.8:53", "DNS server address")
+	domain     = flag.String("domain", "example.com", "Domain to query")
+	qtype      = flag.String("type", "AAAA", "Query type (A, AAAA, CNAME, etc.)")
+	protocol   = flag.String("protocol", "doq", "DNS protocol (udp, tcp, dot, doh, doq)")
 )
 
 func main() {

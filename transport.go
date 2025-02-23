@@ -154,12 +154,3 @@ func (t *Transport) QueryWithDuplicates(ctx context.Context,
 
 	return t.queryUDPWithDuplicates(ctx, addr, query)
 }
-
-type dnsStream interface {
-	io.Reader
-	io.Writer
-	io.Closer
-	SetDeadline(t time.Time) error
-	LocalAddr() net.Addr
-	RemoteAddr() net.Addr
-}

@@ -15,10 +15,20 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net"
+	"time"
 
 	"github.com/miekg/dns"
-	"github.com/quic-go/quic-go"
 )
+
+type dnsStream interface {
+	io.Reader
+	io.Writer
+	io.Closer
+	SetDeadline(t time.Time) error
+	LocalAddr() net.Addr
+	RemoteAddr() net.Addr
+}
 
 // queryTCP implements [*Transport.Query] for DNS over TCP.
 func (t *Transport) queryTCP(ctx context.Context,
@@ -101,7 +111,7 @@ func (t *Transport) queryStream(ctx context.Context,
 	// The client MUST send the DNS query over the selected stream and MUST
 	// indicate through the STREAM FIN mechanism that no further data will
 	// be sent on that stream.
-	if _, ok := conn.(quic.Stream); ok {
+	if _, ok := conn.(*quicStreamWrapper); ok {
 		_ = conn.Close()
 	}
 
