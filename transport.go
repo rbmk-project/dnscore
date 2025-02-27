@@ -109,6 +109,9 @@ func (t *Transport) Query(ctx context.Context,
 	case ProtocolDoH:
 		return t.queryHTTPS(ctx, addr, query)
 
+	case ProtocolDoQ:
+		return t.queryQUIC(ctx, addr, query)
+
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrNoSuchTransportProtocol, addr.Protocol)
 	}
