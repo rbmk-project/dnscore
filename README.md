@@ -21,6 +21,12 @@ by providing building blocks for DNS queries and responses. It uses
 the widely-used [miekg/dns](https://github.com/miekg/dns) library for
 DNS message parsing and serialization.
 
+## Minimum Required Go Version
+
+We maintain compatibility with the oldest supported version of Go as
+documented by the [Go Release Policy](https://golang.org/doc/devel/release.html#policy)
+and update our minimum required version of Go as needed.
+
 ## Installation
 
 ```sh
