@@ -5,12 +5,11 @@ name: Go
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
-
   build:
     strategy:
       matrix:
@@ -18,18 +17,19 @@ jobs:
           # The first entry of the matrix should be the
           # version indicated inside the `go.mod`
           - "1.23"
+          - "1.24"
 
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: "${{ matrix.goversion }}"
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "${{ matrix.goversion }}"
 
-    - name: Build
-      run: go build ./...
+      - name: Build
+        run: go build ./...
 
-    - name: Test
-      run: go test -race -cover ./...
+      - name: Test
+        run: go test -race -cover ./...
