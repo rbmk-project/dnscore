@@ -1,6 +1,6 @@
 module github.com/rbmk-project/dnscore
 
-go 1.23.3
+go 1.23
 
 require (
 	github.com/miekg/dns v1.1.63
