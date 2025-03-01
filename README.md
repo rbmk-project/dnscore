@@ -1,6 +1,6 @@
 # dnscore - DNS Measurement Library
 
-[![GoDoc](https://pkg.go.dev/badge/github.com/rbmk-project/dnscore)](https://pkg.go.dev/github.com/rbmk-project/dnscore)
+[![GoDoc](https://pkg.go.dev/badge/github.com/rbmk-project/dnscore)](https://pkg.go.dev/github.com/rbmk-project/dnscore) [![Build Status](https://github.com/rbmk-project/dnscore/actions/workflows/go.yml/badge.svg)](https://github.com/rbmk-project/dnscore/actions) [![codecov](https://codecov.io/gh/rbmk-project/dnscore/branch/main/graph/badge.svg)](https://codecov.io/gh/rbmk-project/dnscore)
 
 `dnscore` is a Go library designed for performing DNS measurements.  Its high-level
 API, `*dnscore.Resolver`, is compatible with `*net.Resolver`. Its low-level API,
