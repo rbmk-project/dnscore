@@ -62,6 +62,9 @@ func (t *Transport) queryQUIC(ctx context.Context, addr *ServerAddr, query *dns.
 	if err != nil {
 		return nil, err
 	}
+	connPool.Add(closepool.CloserFunc(func() error {
+		return quicConn.CloseWithError(0x42, "quicConn closed!")
+	}))
 
 	quicStream, err := quicConn.OpenStream()
 	if err != nil {
