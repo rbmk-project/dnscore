@@ -13,61 +13,13 @@ package dnscore
 import (
 	"context"
 	"crypto/tls"
-	"log/slog"
 	"net"
 	"time"
 
 	"github.com/miekg/dns"
 	"github.com/quic-go/quic-go"
+	"github.com/rbmk-project/common/closepool"
 )
-
-func (t *Transport) createQUICStream(ctx context.Context, addr *ServerAddr) (tr *quic.Transport, stream *quicStreamWrapper, err error) {
-	// 1. Fill in a default TLS config and QUIC config
-	hostname, _, err := net.SplitHostPort(addr.Address)
-	if err != nil {
-		return
-	}
-	tlsConfig := &tls.Config{
-		NextProtos: []string{"doq"},
-		ServerName: hostname,
-	}
-
-	listenConfig := &net.ListenConfig{}
-	udpConn, err := listenConfig.ListenPacket(ctx, "udp", ":0")
-	if udpConn != nil {
-		slog.Info("UDP connection is successful!", udpConn.LocalAddr().Network(), udpConn.LocalAddr().String())
-	}
-	if err != nil {
-		return
-	}
-
-	udpAddr, err := net.ResolveUDPAddr("udp", addr.Address)
-	if err != nil {
-		return
-	}
-
-	tr = &quic.Transport{
-		Conn: udpConn,
-	}
-	quicConfig := &quic.Config{}
-	quicConn, err := tr.Dial(ctx, udpAddr, tlsConfig, quicConfig)
-	if err != nil {
-		return
-	}
-
-	quicStream, err := quicConn.OpenStream()
-	if err != nil {
-		return
-	}
-
-	stream = &quicStreamWrapper{
-		Stream:     quicStream,
-		localAddr:  quicConn.LocalAddr(),
-		remoteAddr: quicConn.RemoteAddr(),
-	}
-
-	return
-}
 
 func (t *Transport) queryQUIC(ctx context.Context, addr *ServerAddr, query *dns.Msg) (*dns.Msg, error) {
 	// 0. immediately fail if the context is already done, which
@@ -76,16 +28,56 @@ func (t *Transport) queryQUIC(ctx context.Context, addr *ServerAddr, query *dns.
 		return nil, ctx.Err()
 	}
 
+	connPool := &closepool.Pool{}
+
 	// Send the query and log the query if needed.
-	quicTransport, stream, err := t.createQUICStream(ctx, addr)
+	// 1. Fill in a default TLS config and QUIC config
+	hostname, _, err := net.SplitHostPort(addr.Address)
 	if err != nil {
 		return nil, err
+	}
+	tlsConfig := &tls.Config{
+		NextProtos: []string{"doq"},
+		ServerName: hostname,
+		RootCAs:    t.RootCAs,
+	}
+
+	listenConfig := &net.ListenConfig{}
+	udpConn, err := listenConfig.ListenPacket(ctx, "udp", ":0")
+	if err != nil {
+		return nil, err
+	}
+	connPool.Add(udpConn)
+
+	udpAddr, err := net.ResolveUDPAddr("udp", addr.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	tr := &quic.Transport{
+		Conn: udpConn,
+	}
+	quicConfig := &quic.Config{}
+	quicConn, err := tr.Dial(ctx, udpAddr, tlsConfig, quicConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	quicStream, err := quicConn.OpenStream()
+	if err != nil {
+		return nil, err
+	}
+
+	stream := &quicStreamWrapper{
+		Stream:     quicStream,
+		localAddr:  quicConn.LocalAddr(),
+		remoteAddr: quicConn.RemoteAddr(),
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func() {
-		defer quicTransport.Close()
+		defer connPool.Close()
 		<-ctx.Done()
 	}()
 

@@ -19,8 +19,8 @@ import (
 var (
 	serverAddr = flag.String("server", "8.8.8.8:53", "DNS server address")
 	domain     = flag.String("domain", "example.com", "Domain to query")
-	qtype      = flag.String("type", "AAAA", "Query type (A, AAAA, CNAME, etc.)")
-	protocol   = flag.String("protocol", "doq", "DNS protocol (udp, tcp, dot, doh, doq)")
+	qtype      = flag.String("type", "A", "Query type (A, AAAA, CNAME, etc.)")
+	protocol   = flag.String("protocol", "udp", "DNS protocol (udp, tcp, dot, doh, doq)")
 )
 
 func main() {
@@ -51,7 +51,7 @@ func main() {
 	server := dnscore.NewServerAddr(dnscore.Protocol(*protocol), *serverAddr)
 	flags := 0
 	maxlength := uint16(dnscore.EDNS0SuggestedMaxResponseSizeUDP)
-	if *protocol == string(dnscore.ProtocolDoT) || *protocol == string(dnscore.ProtocolDoH) {
+	if *protocol == string(dnscore.ProtocolDoT) || *protocol == string(dnscore.ProtocolDoH) || *protocol == string(dnscore.ProtocolDoQ) {
 		flags |= dnscore.EDNS0FlagDO | dnscore.EDNS0FlagBlockLengthPadding
 	}
 	if *protocol != string(dnscore.ProtocolUDP) {

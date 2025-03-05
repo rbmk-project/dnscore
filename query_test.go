@@ -76,6 +76,14 @@ func TestNewQueryWithServerAddr(t *testing.T) {
 			options:    []QueryOption{mockedFailingOption},
 			wantErr:    true,
 		},
+		{
+			name:       "DoQ query should have zero ID",
+			serverAddr: NewServerAddr(ProtocolQUIC, "dns.adguard-dns.com:853"),
+			qname:      "example.com",
+			qtype:      dns.TypeAAAA,
+			wantName:   "example.com.",
+			wantId:     0,
+		},
 	}
 
 	for _, tt := range tests {

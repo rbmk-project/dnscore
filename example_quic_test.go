@@ -26,7 +26,7 @@ func ExampleTransport_dnsOverQUIC() {
 			dnscore.EDNS0FlagDO|dnscore.EDNS0FlagBlockLengthPadding,
 		),
 	}
-	query, err := dnscore.NewQuery("dns.google", dns.TypeA, options...)
+	query, err := dnscore.NewQueryWithServerAddr(serverAddr, "dns.google", dns.TypeA, options...)
 	if err != nil {
 		log.Fatal(err)
 	}
