@@ -28,6 +28,8 @@ func (t *Transport) queryQUIC(ctx context.Context, addr *ServerAddr, query *dns.
 		return nil, ctx.Err()
 	}
 
+	// A data structure to hold a pool of connections that can be closed at once.
+	// Refer: rbmk-project/common/closepool package
 	connPool := &closepool.Pool{}
 
 	// Send the query and log the query if needed.
