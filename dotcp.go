@@ -3,7 +3,8 @@
 //
 // Adapted from: https://github.com/ooni/probe-engine/blob/v0.23.0/netx/resolver/dnsovertcp.go
 //
-// DNS-over-TCP implementation
+// DNS-over-TCP implementation. Includes generic code to
+// send queries over streams used by DoT and DoQ.
 //
 
 package dnscore
@@ -21,10 +22,9 @@ import (
 	"github.com/miekg/dns"
 )
 
+// dnsStream is the interface expected by [*Transport.queryStream],
 type dnsStream interface {
-	io.Reader
-	io.Writer
-	io.Closer
+	io.ReadWriteCloser
 	SetDeadline(t time.Time) error
 	LocalAddr() net.Addr
 	RemoteAddr() net.Addr
@@ -106,12 +106,19 @@ func (t *Transport) queryStream(ctx context.Context,
 		return nil, err
 	}
 
-	// RFC 9250
-	// 4.2.  Stream Mapping and Usage
-	// The client MUST send the DNS query over the selected stream and MUST
-	// indicate through the STREAM FIN mechanism that no further data will
-	// be sent on that stream.
-	if _, ok := conn.(*quicStreamWrapper); ok {
+	// 5b. Ensure we close the stream when using DoQ to signal the
+	// upstream server that it is okay to send a response.
+	//
+	// RFC 9250 is very clear in this respect:
+	//
+	//	4.2.  Stream Mapping and Usage
+	//	client MUST send the DNS query over the selected stream and MUST
+	//	indicate through the STREAM FIN mechanism that no further data will
+	//	be sent on that stream.
+	//
+	// Empirical testing during https://github.com/rbmk-project/dnscore/pull/18
+	// showed that, in fact, some servers misbehave if we don't do this.
+	if _, ok := conn.(*quicStreamAdapter); ok {
 		_ = conn.Close()
 	}
 

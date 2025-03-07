@@ -18,7 +18,7 @@ import (
 // Define command-line flags
 var (
 	serverAddr = flag.String("server", "8.8.8.8:53", "DNS server address")
-	domain     = flag.String("domain", "example.com", "Domain to query")
+	domain     = flag.String("domain", "www.example.com", "Domain to query")
 	qtype      = flag.String("type", "A", "Query type (A, AAAA, CNAME, etc.)")
 	protocol   = flag.String("protocol", "udp", "DNS protocol (udp, tcp, dot, doh, doq)")
 )
@@ -47,11 +47,14 @@ func main() {
 		panic(fmt.Errorf("transport: unsupported query type: %s", *qtype))
 	}
 
-	// Create the server address
+	// Create the server address. Ensure that we set the proper flags
+	// depending on the protocol that we're going to use.
 	server := dnscore.NewServerAddr(dnscore.Protocol(*protocol), *serverAddr)
 	flags := 0
 	maxlength := uint16(dnscore.EDNS0SuggestedMaxResponseSizeUDP)
-	if *protocol == string(dnscore.ProtocolDoT) || *protocol == string(dnscore.ProtocolDoH) || *protocol == string(dnscore.ProtocolDoQ) {
+	if *protocol == string(dnscore.ProtocolDoT) ||
+		*protocol == string(dnscore.ProtocolDoH) ||
+		*protocol == string(dnscore.ProtocolDoQ) {
 		flags |= dnscore.EDNS0FlagDO | dnscore.EDNS0FlagBlockLengthPadding
 	}
 	if *protocol != string(dnscore.ProtocolUDP) {

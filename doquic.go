@@ -3,10 +3,8 @@
 //
 // DNS-over-QUIC implementation
 //
-
-// DNS over Dedicated QUIC Connections
-// RFC 9250
-// https://datatracker.ietf.org/doc/rfc9250/
+// See // https://datatracker.ietf.org/doc/rfc9250/
+//
 
 package dnscore
 
@@ -28,12 +26,7 @@ func (t *Transport) queryQUIC(ctx context.Context, addr *ServerAddr, query *dns.
 		return nil, ctx.Err()
 	}
 
-	// A data structure to hold a pool of connections that can be closed at once.
-	// Refer: rbmk-project/common/closepool package
-	connPool := &closepool.Pool{}
-
-	// Send the query and log the query if needed.
-	// 1. Fill in a default TLS config and QUIC config
+	// 1. Fill the TLS configuration
 	hostname, _, err := net.SplitHostPort(addr.Address)
 	if err != nil {
 		return nil, err
@@ -44,6 +37,21 @@ func (t *Transport) queryQUIC(ctx context.Context, addr *ServerAddr, query *dns.
 		RootCAs:    t.RootCAs,
 	}
 
+	// 2. Create a connection pool to close all opened connections
+	// and ensure we don't leak resources by using defer.
+	connPool := &closepool.Pool{}
+	defer connPool.Close()
+
+	// TODO(bassosimone,roopeshsn): for TCP connections, we abstract
+	// this process of combining the DNS lookup and dialing a connection,
+	// which, in turn, allows for better unit testing and also allows
+	// rbmk-project/rbmk to use rbmk-project/x/netcore for dialing.
+	//
+	// We should probably see to create a similar dialing interface in
+	// rbmk-project/x/netcore for QUIC connections. We started discussing
+	// this in https://github.com/rbmk-project/dnscore/pull/18.
+
+	// 3. Open the UDP connection for supporting QUIC
 	listenConfig := &net.ListenConfig{}
 	udpConn, err := listenConfig.ListenPacket(ctx, "udp", ":0")
 	if err != nil {
@@ -51,34 +59,46 @@ func (t *Transport) queryQUIC(ctx context.Context, addr *ServerAddr, query *dns.
 	}
 	connPool.Add(udpConn)
 
+	// 4. Map the UDP address, which may possibly contain a domain
+	// name, to an actual UDP address structure to dial with
 	udpAddr, err := net.ResolveUDPAddr("udp", addr.Address)
 	if err != nil {
 		return nil, err
 	}
 
+	// 5. Establish a QUIC connection. Note that the default
+	// configuration implies a 5s timeout for handshaking and
+	// a 30s idle connection timeout.
 	tr := &quic.Transport{
 		Conn: udpConn,
 	}
+	connPool.Add(tr)
 	quicConfig := &quic.Config{}
 	quicConn, err := tr.Dial(ctx, udpAddr, tlsConfig, quicConfig)
 	if err != nil {
 		return nil, err
 	}
 	connPool.Add(closepool.CloserFunc(func() error {
-		return quicConn.CloseWithError(0x42, "quicConn closed!")
+		// Closing w/o specific error -- RFC 9250 Sect. 4.3
+		const doq_no_error = 0x00
+		return quicConn.CloseWithError(doq_no_error, "")
 	}))
 
+	// 6. Open a stream for sending the DoQ query and wrap it into
+	// an adapter that makes it usable by DNS-over-stream code
 	quicStream, err := quicConn.OpenStream()
 	if err != nil {
 		return nil, err
 	}
-
-	stream := &quicStreamWrapper{
+	stream := &quicStreamAdapter{
 		Stream:     quicStream,
 		localAddr:  quicConn.LocalAddr(),
 		remoteAddr: quicConn.RemoteAddr(),
 	}
+	connPool.Add(stream)
 
+	// 7. Ensure that we tear down everything which we have set up
+	// in the case in which the context is canceled
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func() {
@@ -86,18 +106,42 @@ func (t *Transport) queryQUIC(ctx context.Context, addr *ServerAddr, query *dns.
 		<-ctx.Done()
 	}()
 
+	// 8. defer to queryStream. Note that this method TAKES OWNERSHIP of
+	// the stream and closes it after we've sent the query, honouring the
+	// expectations for DoQ queries -- see RFC 9250 Sect. 4.2.
 	return t.queryStream(ctx, addr, query, stream)
 }
 
-type quicStreamWrapper struct {
+// quicStreamAdapter ensures a QUIC stream implements [dnsStream].
+type quicStreamAdapter struct {
 	Stream     quic.Stream
 	localAddr  net.Addr
 	remoteAddr net.Addr
 }
 
-func (qsw *quicStreamWrapper) Read(p []byte) (int, error)    { return qsw.Stream.Read(p) }
-func (qsw *quicStreamWrapper) Write(p []byte) (int, error)   { return qsw.Stream.Write(p) }
-func (qsw *quicStreamWrapper) Close() error                  { return qsw.Stream.Close() }
-func (qsw *quicStreamWrapper) SetDeadline(t time.Time) error { return qsw.Stream.SetDeadline(t) }
-func (qsw *quicStreamWrapper) LocalAddr() net.Addr           { return qsw.localAddr }
-func (qsw *quicStreamWrapper) RemoteAddr() net.Addr          { return qsw.remoteAddr }
+// Make sure we actually implement [dnsStream].
+var _ dnsStream = &quicStreamAdapter{}
+
+func (qsw *quicStreamAdapter) Read(p []byte) (int, error) {
+	return qsw.Stream.Read(p)
+}
+
+func (qsw *quicStreamAdapter) Write(p []byte) (int, error) {
+	return qsw.Stream.Write(p)
+}
+
+func (qsw *quicStreamAdapter) Close() error {
+	return qsw.Stream.Close()
+}
+
+func (qsw *quicStreamAdapter) SetDeadline(t time.Time) error {
+	return qsw.Stream.SetDeadline(t)
+}
+
+func (qsw *quicStreamAdapter) LocalAddr() net.Addr {
+	return qsw.localAddr
+}
+
+func (qsw *quicStreamAdapter) RemoteAddr() net.Addr {
+	return qsw.remoteAddr
+}
