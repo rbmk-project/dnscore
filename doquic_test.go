@@ -10,7 +10,7 @@ import (
 
 func TestTransport_queryQUIC(t *testing.T) {
 	// TODO(bassosimone,roopeshsn): currently this is an integration test
-	// using the network but we instead convert this test to:
+	// using the network w/ real servers but we should instead have:
 	//
 	// 1. an integration test using the network but using a QUIC server running
 	// locally (a test which should live inside integration_test.go)
