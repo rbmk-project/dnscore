@@ -9,6 +9,14 @@ import (
 )
 
 func TestTransport_queryQUIC(t *testing.T) {
+	// TODO(bassosimone,roopeshsn): currently this is an integration test
+	// using the network but we instead convert this test to:
+	//
+	// 1. an integration test using the network but using a QUIC server running
+	// locally (a test which should live inside integration_test.go)
+	//
+	// 2. unit tests using mocking like we do for, e.g.m dohttps_test.go
+
 	tests := []struct {
 		name           string
 		setupTransport func() *Transport

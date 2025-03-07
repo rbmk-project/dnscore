@@ -166,3 +166,5 @@ func TestTransport_RoundTrip_HTTPS(t *testing.T) {
 	// verify the results
 	checkResult(t, resp, err)
 }
+
+// TODO(bassosimone,roopeshsn): add integration tests for DoQ
