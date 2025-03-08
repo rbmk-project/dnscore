@@ -3,7 +3,8 @@
 //
 // Adapted from: https://github.com/ooni/probe-engine/blob/v0.23.0/netx/resolver/dnsovertcp.go
 //
-// DNS-over-TCP implementation
+// DNS-over-TCP implementation. Includes generic code to
+// send queries over streams used by DoT and DoQ.
 //
 
 package dnscore
@@ -16,9 +17,18 @@ import (
 	"io"
 	"math"
 	"net"
+	"time"
 
 	"github.com/miekg/dns"
 )
+
+// dnsStream is the interface expected by [*Transport.queryStream],
+type dnsStream interface {
+	io.ReadWriteCloser
+	SetDeadline(t time.Time) error
+	LocalAddr() net.Addr
+	RemoteAddr() net.Addr
+}
 
 // queryTCP implements [*Transport.Query] for DNS over TCP.
 func (t *Transport) queryTCP(ctx context.Context,
@@ -55,7 +65,7 @@ type queryMsg interface {
 // This method TAKES OWNERSHIP of the provided connection and is
 // responsible for closing it when done.
 func (t *Transport) queryStream(ctx context.Context,
-	addr *ServerAddr, query queryMsg, conn net.Conn) (*dns.Msg, error) {
+	addr *ServerAddr, query queryMsg, conn dnsStream) (*dns.Msg, error) {
 
 	// 1. Use a single connection for request, which is what the standard library
 	// does as well for TCP and is more robust in terms of residual censorship.
@@ -94,6 +104,22 @@ func (t *Transport) queryStream(ctx context.Context,
 	// returned connection and implements the desired logging.
 	if _, err := conn.Write(rawQueryFrame); err != nil {
 		return nil, err
+	}
+
+	// 5b. Ensure we close the stream when using DoQ to signal the
+	// upstream server that it is okay to send a response.
+	//
+	// RFC 9250 is very clear in this respect:
+	//
+	//	4.2.  Stream Mapping and Usage
+	//	client MUST send the DNS query over the selected stream and MUST
+	//	indicate through the STREAM FIN mechanism that no further data will
+	//	be sent on that stream.
+	//
+	// Empirical testing during https://github.com/rbmk-project/dnscore/pull/18
+	// showed that, in fact, some servers misbehave if we don't do this.
+	if _, ok := conn.(*quicStreamAdapter); ok {
+		_ = conn.Close()
 	}
 
 	// 6. Wrap the conn to avoid issuing too many reads

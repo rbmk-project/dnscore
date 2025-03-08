@@ -16,9 +16,6 @@ func TestNewQueryWithServerAddr(t *testing.T) {
 	dns.Id = func() uint16 { return expectedNonZeroQueryID }
 	defer func() { dns.Id = savedId }()
 
-	// TODO(bassosimone,roopeshsn): ensure we also test for DoQ
-	// once we merge the corresponding PR.
-
 	tests := []struct {
 		name       string
 		serverAddr *ServerAddr
@@ -75,6 +72,14 @@ func TestNewQueryWithServerAddr(t *testing.T) {
 			qtype:      dns.TypeA,
 			options:    []QueryOption{mockedFailingOption},
 			wantErr:    true,
+		},
+		{
+			name:       "DoQ query should have zero ID",
+			serverAddr: NewServerAddr(ProtocolQUIC, "dns.adguard-dns.com:853"),
+			qname:      "example.com",
+			qtype:      dns.TypeAAAA,
+			wantName:   "example.com.",
+			wantId:     0,
 		},
 	}
 

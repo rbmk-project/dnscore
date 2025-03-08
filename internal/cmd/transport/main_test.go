@@ -38,6 +38,12 @@ func Test_main(t *testing.T) {
 		main()
 	})
 
+	t.Run("DNS-over-QUIC", func(t *testing.T) {
+		*serverAddr = "dns0.eu:853"
+		*protocol = "doq"
+		main()
+	})
+
 	t.Run("AAAA query", func(t *testing.T) {
 		*serverAddr = "8.8.8.8:53"
 		*protocol = "udp"
