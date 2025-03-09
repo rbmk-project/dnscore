@@ -5,13 +5,13 @@
 `dnscore` is a Go library designed for performing DNS measurements.  Its high-level
 API, `*dnscore.Resolver`, is compatible with `*net.Resolver`. Its low-level API,
 `*dnscore.Transport`, provides granular control over performing DNS queries using
-specific protocols (including UDP, TCP, TLS, and HTTPS).
+specific protocols (including UDP, TCP, TLS, HTTPS, and QUIC).
 
 ## Features
 
 - High-level `*Resolver` API compatible with `*net.Resolver` for easy integration.
 - Low-level `*Transport` API allowing granular control over DNS requests and responses.
-- Support for multiple DNS protocols, including UDP, TCP, DoT, and DoH.
+- Support for multiple DNS protocols, including UDP, TCP, DoT, DoH, and DoQ.
 - Utilities for creating and validating DNS messages.
 - Optional logging for structured diagnostic events through `log/slog`.
 - Handling of duplicate responses for DNS over UDP to measure censorship.
@@ -52,11 +52,12 @@ The `*dnscore.Transport` API provides granular control over DNS queries and resp
 See
 
 - [example_https_test.go](example_https_test.go)
+- [example_quic_test.go](example_quic_test.go)
 - [example_tcp_test.go](example_tcp_test.go)
 - [example_tls_test.go](example_tls_test.go)
 - [example_udp_test.go](example_udp_test.go)
 
-for complete examples using DNS over HTTPS, TCP, TLS, and UDP respectively.
+for complete examples using DNS over HTTPS, QUIC, TCP, TLS, and UDP respectively.
 
 See also [internal/cmd/transport/main.go](internal/cmd/transport/main.go) for
 a simple command line tool that demonstrates how to use the `*dnscore.Transport` API

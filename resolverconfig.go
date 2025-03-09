@@ -74,7 +74,7 @@ type AddServerOption func(*resolverConfigServer)
 // ServerOptionQueryOptions sets the query options to use for constructing queries
 // to this specific server.If this option is not used, we use the default query options
 // suitable for the protocol used by the server. Specifically, we enable DNSSEC
-// validation and block-length padding for DNS-over-HTTPS and DNS-over-TLS servers.
+// validation and block-length padding for DoT, DoH, and DoQ.
 func ServerOptionQueryOptions(queryOptions ...QueryOption) AddServerOption {
 	return func(s *resolverConfigServer) {
 		s.queryOptions = queryOptions
@@ -103,7 +103,7 @@ func newResolverConfigServer(address *ServerAddr, options ...AddServerOption) re
 
 	// apply the default query options suitable for the protocol used by the server
 	switch address.Protocol {
-	case ProtocolDoH, ProtocolDoT:
+	case ProtocolDoH, ProtocolDoT, ProtocolDoQ:
 		server.queryOptions = append(server.queryOptions, QueryOptionEDNS0(
 			EDNS0SuggestedMaxResponseSizeOtherwise,
 			EDNS0FlagDO|EDNS0FlagBlockLengthPadding))
@@ -143,6 +143,10 @@ func (c *ResolverConfig) servers() []resolverConfigServer {
 	if len(list) == 0 {
 		defaultAddrs := []string{"8.8.8.8", "8.8.4.4"}
 		for _, addr := range defaultAddrs {
+			// TODO(bassosimone): double check whether this is causing
+			// us to always use the max UDP response size also for
+			// encrypted transports. I think this may be the case just
+			// by reading the current code.
 			list = append(list, newResolverConfigServer(
 				NewServerAddr(ProtocolUDP, net.JoinHostPort(addr, "53")),
 				ServerOptionQueryOptions(QueryOptionEDNS0(
