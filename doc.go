@@ -20,7 +20,7 @@ DNS messages.
 
 - Low-level [*Transport] API allowing granular control over DNS requests and responses.
 
-- Support for multiple DNS protocols, including UDP, TCP, DoT, and DoH.
+- Support for multiple DNS protocols, including UDP, TCP, DoT, DoH, and DoQ.
 
 - Utilities for creating and validating DNS messages.
 
