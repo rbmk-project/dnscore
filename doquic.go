@@ -114,7 +114,7 @@ func (t *Transport) queryQUIC(ctx context.Context, addr *ServerAddr, query *dns.
 
 // quicStreamAdapter ensures a QUIC stream implements [dnsStream].
 type quicStreamAdapter struct {
-	Stream     quic.Stream
+	Stream     *quic.Stream
 	localAddr  net.Addr
 	remoteAddr net.Addr
 }
