@@ -140,11 +140,12 @@ func TestRCodeToError(t *testing.T) {
 			resp := new(dns.Msg)
 			resp.Rcode = tt.rcode
 
-			if tt.name == "LameReferral" {
+			switch tt.name {
+			case "LameReferral":
 				resp.Authoritative = false
 				resp.RecursionAvailable = false
 				resp.Answer = nil
-			} else if tt.name == "Success" {
+			case "Success":
 				resp.Authoritative = true
 				resp.RecursionAvailable = true
 				resp.Answer = []dns.RR{&dns.A{

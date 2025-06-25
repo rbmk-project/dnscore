@@ -310,12 +310,13 @@ func TestResolver_LookupHost(t *testing.T) {
 			mockQuery: func(ctx context.Context, addr *ServerAddr, query *dns.Msg) (*dns.Msg, error) {
 				msg := &dns.Msg{}
 				msg.SetReply(query)
-				if query.Question[0].Qtype == dns.TypeA {
+				switch query.Question[0].Qtype {
+				case dns.TypeA:
 					msg.Answer = append(msg.Answer, &dns.A{
 						Hdr: dns.RR_Header{Name: query.Question[0].Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 300},
 						A:   net.ParseIP("192.0.2.1"),
 					})
-				} else if query.Question[0].Qtype == dns.TypeAAAA {
+				case dns.TypeAAAA:
 					msg.Answer = append(msg.Answer, &dns.AAAA{
 						Hdr:  dns.RR_Header{Name: query.Question[0].Name, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: 300},
 						AAAA: net.ParseIP("2001:db8::1"),
