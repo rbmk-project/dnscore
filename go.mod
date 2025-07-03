@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/miekg/dns v1.1.66
 	github.com/quic-go/quic-go v0.53.0
-	github.com/rbmk-project/common v0.21.0
+	github.com/rbmk-project/common v0.22.0
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/net v0.41.0
 )
