@@ -7,6 +7,21 @@ API, `*dnscore.Resolver`, is compatible with `*net.Resolver`. Its low-level API,
 `*dnscore.Transport`, provides granular control over performing DNS queries using
 specific protocols (including UDP, TCP, TLS, HTTPS, and QUIC).
 
+## 📦 Archived
+
+This repository has been merged into the main [`rbmk`](
+https://github.com/rbmk-project/rbmk) repository with
+[rbmk#76](https://github.com/rbmk-project/rbmk/pull/76).
+
+Please, update the import paths as follows:
+
+```
+github.com/rbmk-project/dnscore => github.com/rbmk-project/rbmk/pkg/dns/dnscore
+github.com/rbmk-project/dnscore/dnscoretest => github.com/rbmk-project/rbmk/pkg/dns/dnscoretest
+```
+
+This repository is archived for historical reference.
+
 ## Features
 
 - High-level `*Resolver` API compatible with `*net.Resolver` for easy integration.
